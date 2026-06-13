@@ -1,0 +1,38 @@
+replicaCount: 1
+
+image:
+  repository: quay.io/okdp/images/okdp-ui
+  # Defaults to the chart appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# In-cluster okdp-server Service, reverse-proxied by nginx under /api so
+# the browser stays same-origin (no CORS, the API is never exposed).
+backend:
+  service: okdp-server
+  # Defaults to the release namespace.
+  namespace: ""
+  port: 8093
+
+service:
+  type: ClusterIP
+  port: 4200
+
+# Public exposure of the console.
+ingress:
+  className: nginx
+  host: console.okdp.dev-sandbox
+  clusterIssuer: default-issuer
+  tlsSecretName: okdp-ui-tls
+
+# Public OIDC client used by the console. clientId must match the value
+# baked at build time in src/environments/environment.prod.ts.
+oidc:
+  # Set to false on clusters where kubauth (the OidcClient CRD) is absent.
+  enabled: true
+  clientId: okdp-app
+  # kubauth namespace, defaults to the release namespace.
+  namespace: ""
+  kubauthHost: kubauth.okdp.dev-sandbox
+
+resources: {}

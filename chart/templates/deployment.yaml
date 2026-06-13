@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "okdp-ui.fullname" . }}
+  labels:
+    {{- include "okdp-ui.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "okdp-ui.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Roll the Deployment whenever the nginx configuration changes.
+        checksum/nginx-config: {{ include (print $.Template.BasePath "/nginx-config.yaml") . | sha256sum }}
+      labels:
+        {{- include "okdp-ui.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # Enables the nginx image's resolver extraction
+            # (15-local-resolvers.envsh): populates ${NGINX_LOCAL_RESOLVERS}
+            # from /etc/resolv.conf so the templated config resolves the
+            # backend at request time instead of at start-up.
+            - name: NGINX_ENTRYPOINT_LOCAL_RESOLVERS
+              value: "true"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/templates/default.conf.template
+              subPath: default.conf.template
+              readOnly: true
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ include "okdp-ui.fullname" . }}-nginx

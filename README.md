@@ -12,6 +12,18 @@ npm start
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Deploy with the Helm chart
+
+The console runs **in-cluster** (nginx serves the build and proxies `/api` to the
+server), deployed with the bundled chart (`chart/`):
+
+```bash
+helm install okdp-ui ./chart -n okdp-system \
+  --set ingress.host=console.okdp.dev-sandbox
+```
+
+For local development you can still run `npm start`.
+
 ## Build
 
 To build the project run:
