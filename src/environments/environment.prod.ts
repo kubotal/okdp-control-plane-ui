@@ -2,8 +2,10 @@
 export const environment = {
     production: true,
 
-    // API Configuration - relative URLs for same-origin deployment
-    apiBaseUrl: '/api',
+    // API Configuration - same-origin root; services already prepend their
+    // own /api/... prefix (e.g. `${apiBaseUrl}/api/projects`), so the base
+    // must stay empty to avoid a duplicated /api/api/ path.
+    apiBaseUrl: '',
 
     // OIDC Configuration - same values as dev, logLevel set to None
     oidc: {
