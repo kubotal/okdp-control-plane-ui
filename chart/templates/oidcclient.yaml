@@ -1,0 +1,35 @@
+{{- if .Values.oidc.enabled }}
+# Public OIDC client consumed by the console (PKCE authorization-code
+# flow). The clientId, scopes and response type must stay aligned with
+# src/environments/environment.prod.ts.
+apiVersion: kubauth.kubotal.io/v1alpha1
+kind: OidcClient
+metadata:
+  name: {{ .Values.oidc.clientId }}
+  namespace: {{ .Values.oidc.namespace | default .Release.Namespace }}
+spec:
+  displayName: "OKDP Console"
+  description: "OIDC client for the OKDP control-plane console"
+  public: true
+  entryURL: "https://{{ .Values.oidc.kubauthHost }}"
+  accessTokenLifespan: 1h0m0s
+  idTokenLifespan: 1h0m0s
+  refreshTokenLifespan: 1h0m0s
+  redirectURIs:
+    - "https://{{ .Values.ingress.host }}"
+    - "https://{{ .Values.ingress.host }}/"
+    - "https://{{ .Values.ingress.host }}/silent-refresh.html"
+  postLogoutURL: "https://{{ .Values.ingress.host }}"
+  grantTypes:
+    - "authorization_code"
+    - "refresh_token"
+  responseTypes:
+    - "code"
+  scopes:
+    - "openid"
+    - "profile"
+    - "email"
+    - "groups"
+    - "offline_access"
+  forceOpenIdScope: true
+{{- end }}

@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "okdp-ui.fullname" . }}-nginx
+  labels:
+    {{- include "okdp-ui.labels" . | nindent 4 }}
+data:
+  # Mounted as /etc/nginx/templates/default.conf.template; the nginx image
+  # entrypoint runs envsubst on it at start-up. ${NGINX_LOCAL_RESOLVERS} is
+  # set by the image's 15-local-resolvers.envsh from /etc/resolv.conf.
+  # nginx runtime variables ($host, $request_uri, $okdp_backend, ...) are
+  # left untouched (they are not environment variables).
+  default.conf.template: |
+    server {
+        listen 4200;
+        server_name _;
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Cluster DNS resolver, injected by the nginx image entrypoint.
+        # Combined with the variable upstream below, nginx resolves the
+        # backend at request time instead of at start-up, so the console
+        # boots even when okdp-server is not up yet (/api returns 502 until
+        # it is) instead of crashing on "host not found in upstream".
+        resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
+
+        # Reverse-proxy API calls to the in-cluster okdp-server Service.
+        # The full original URI (/api/...) is forwarded as-is.
+        location /api/ {
+            set $okdp_backend "{{ .Values.backend.service }}.{{ .Values.backend.namespace | default .Release.Namespace }}.svc.cluster.local";
+            proxy_pass http://$okdp_backend:{{ .Values.backend.port }}$request_uri;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Server-Sent Events (/api/.../stream): disable buffering and
+            # keep the connection open.
+            proxy_set_header Connection '';
+            proxy_buffering off;
+            proxy_cache off;
+            proxy_read_timeout 3600s;
+            chunked_transfer_encoding off;
+        }
+
+        # SPA - unknown routes fall back to index.html
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # Health check endpoint (used by the liveness/readiness probes)
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+    }
