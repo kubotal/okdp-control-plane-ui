@@ -27,6 +27,7 @@ import { DynamicSchemaForm } from '../../../shared/components/dynamic-schema-for
 import { usePolledResources } from '../../../shared/hooks/use-polled-resources';
 import SearchFilter from '../../../shared/components/search-filter';
 import { PageHeader } from '../../../shared/components/page-header';
+import { ConnectionDetailDialog } from './connection-detail-dialog';
 import { useToastMessages } from '../../../shared/hooks/use-toast-messages';
 import { useRowActionsMenu } from '../../../shared/hooks/use-row-actions-menu';
 import { k8sNameError } from '../../../shared/utils/k8s-names';
@@ -63,6 +64,7 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [detail, setDetail] = useState<Connection | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -199,9 +201,13 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
   };
 
   const { menuElement, openMenu } = useRowActionsMenu<Connection>([
+    { label: 'Details', icon: 'pi pi-info-circle', command: setDetail },
     { label: 'Edit', icon: 'pi pi-pencil', command: openEditDialog },
     { label: 'Delete', icon: 'pi pi-trash', command: setDeleteTarget },
   ]);
+
+  const onCopied = (what: string) =>
+    what ? showSuccess(`Copied ${what}`) : showError('Could not copy to the clipboard');
 
   const dialogFooter = (
     <DialogFooter
@@ -268,7 +274,8 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
           globalFilterFields={['name', 'type', 'description', 'status']}
           className="minimal-table"
           dataKey="name"
-          rowClassName={() => 'cluster-row'}
+          rowClassName={() => 'cluster-row cursor-pointer'}
+          onRowClick={(event) => setDetail(event.data as Connection)}
           emptyMessage={
             <div className="flex items-center justify-center gap-2 p-8 text-[14px] text-fg-secondary">
               <i className="pi pi-cloud text-[1.2rem] opacity-50"></i>
@@ -336,7 +343,11 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
                   text
                   rounded
                   aria-label={`Actions for ${connection.name}`}
-                  onClick={(e) => openMenu(connection, e)}
+                  onClick={(e) => {
+                    // The row opens the detail dialog; the menu must not.
+                    e.stopPropagation();
+                    openMenu(connection, e);
+                  }}
                 />
               </div>
             )}
@@ -436,6 +447,24 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
           if (deleteTarget) deleteConnection(deleteTarget);
           setDeleteTarget(null);
         }}
+      />
+
+      <ConnectionDetailDialog
+        detail={
+          detail && {
+            name: detail.name,
+            typeDisplay:
+              catalog?.types.find((t) => t.name === detail.type)?.displayName ?? detail.type,
+            icon: catalog?.types.find((t) => t.name === detail.type)?.icon,
+            description: detail.description,
+            values: detail.values,
+            usage: detail.usage,
+            credentialsSecret: detail.credentialsSecret,
+          }
+        }
+        visible={detail !== null}
+        onHide={() => setDetail(null)}
+        onCopied={onCopied}
       />
     </div>
   );

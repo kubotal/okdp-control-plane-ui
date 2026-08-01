@@ -48,6 +48,37 @@ export type ConnectionScope = 'project' | 'platform';
 
 export type ConnectionValues = Record<string, string | number | boolean>;
 
+/** Where one credential lives. The console shows the reference so a consumer
+ *  can mount it; it never receives, and cannot display, the value. */
+export interface SecretRef {
+  name: string;
+  namespace?: string;
+  key: string;
+}
+
+/** One environment variable of a connection's usage. Exactly one of `value`
+ *  and `secretRef` is set — a credential is always the latter. */
+export interface ConnectionEnvVar {
+  name: string;
+  value?: string;
+  secretRef?: SecretRef;
+}
+
+/** What a consumer needs to actually use a connection, rendered by the server
+ *  so the formats live in one place. */
+export interface ConnectionUsage {
+  uri?: string;
+  uriLabel?: string;
+  env?: ConnectionEnvVar[];
+}
+
+/** The Secret holding a connection's credentials, and the keys it carries. */
+export interface CredentialsSecretRef {
+  name: string;
+  namespace?: string;
+  keys?: string[];
+}
+
 export interface Connection {
   name: string;
   type: string;
@@ -59,6 +90,9 @@ export interface Connection {
   values: ConnectionValues;
   /** Names of the fields holding credentials — their values are never sent. */
   secretFields?: string[];
+  /** The Secret holding those credentials, for consumers to reference. */
+  credentialsSecret?: CredentialsSecretRef;
+  usage?: ConnectionUsage;
   createdAt?: string;
 }
 
@@ -88,6 +122,9 @@ export interface InternalConnection {
   /** True once the entry comes from a Connection owned by the release
    *  controller rather than being derived from the deployed service. */
   managed: boolean;
+  /** Same shape as an external connection's, minus the credential variables:
+   *  an internal connection carries no Secret. */
+  usage?: ConnectionUsage;
   createdAt?: string;
 }
 

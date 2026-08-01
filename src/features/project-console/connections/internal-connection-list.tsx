@@ -12,6 +12,7 @@ import { usePolledResources } from '../../../shared/hooks/use-polled-resources';
 import SearchFilter from '../../../shared/components/search-filter';
 import { PageHeader } from '../../../shared/components/page-header';
 import { useToastMessages } from '../../../shared/hooks/use-toast-messages';
+import { ConnectionDetailDialog } from './connection-detail-dialog';
 
 const isConnectionChanged = (incoming: InternalConnection, current: InternalConnection) =>
   incoming.name !== current.name ||
@@ -34,12 +35,17 @@ export function InternalConnectionList() {
     useCallback(() => showError('Failed to load internal connections'), [showError]),
   );
 
+  const [detail, setDetail] = useState<InternalConnection | null>(null);
+
   const copyEndpoint = (connection: InternalConnection) => {
     navigator.clipboard
       .writeText(connection.endpoint)
       .then(() => showSuccess(`Copied ${connection.endpoint}`))
       .catch(() => showError('Could not copy the endpoint to the clipboard'));
   };
+
+  const onCopied = (what: string) =>
+    what ? showSuccess(`Copied ${what}`) : showError('Could not copy to the clipboard');
 
   return (
     <div>
@@ -66,7 +72,8 @@ export function InternalConnectionList() {
           globalFilterFields={['name', 'type', 'typeDisplay', 'service', 'endpoint', 'status']}
           className="minimal-table"
           dataKey="name"
-          rowClassName={() => 'cluster-row'}
+          rowClassName={() => 'cluster-row cursor-pointer'}
+          onRowClick={(event) => setDetail(event.data as InternalConnection)}
           emptyMessage={
             <div className="flex items-center justify-center gap-2 p-8 text-[14px] text-fg-secondary">
               <i className="pi pi-sitemap text-[1.2rem] opacity-50"></i>
@@ -146,7 +153,12 @@ export function InternalConnectionList() {
                   text
                   rounded
                   disabled={!connection.endpoint}
-                  onClick={() => copyEndpoint(connection)}
+                  onClick={(event) => {
+                    // The row itself opens the detail dialog; copying is a
+                    // shortcut and must not open it as well.
+                    event.stopPropagation();
+                    copyEndpoint(connection);
+                  }}
                   title="Copy endpoint"
                   aria-label={`Copy the endpoint of ${connection.name}`}
                 />
@@ -155,6 +167,22 @@ export function InternalConnectionList() {
           />
         </DataTable>
       </div>
+
+      <ConnectionDetailDialog
+        detail={
+          detail && {
+            name: detail.name,
+            typeDisplay: detail.typeDisplay || detail.type,
+            icon: detail.icon,
+            description: `Provided by ${detail.service || detail.releaseName} in this project.`,
+            values: detail.values,
+            usage: detail.usage,
+          }
+        }
+        visible={detail !== null}
+        onHide={() => setDetail(null)}
+        onCopied={onCopied}
+      />
     </div>
   );
 }
