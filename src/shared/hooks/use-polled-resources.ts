@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { POLL_INTERVAL_MS } from './constants';
+
+export const DEFAULT_POLL_INTERVAL_MS = 10_000;
 
 /** Initial load + interval polling for a project-scoped resource list,
- *  shared by the secret store and external secret tables.
+ *  shared by the secret store, external secret and connection tables.
  *
  *  Poll results go through `merge`, which keeps the current array's
  *  referential identity unless `isRowChanged` reports a difference — this
@@ -13,7 +14,7 @@ export function usePolledResources<T>(
   fetchList: (projectId: string) => Promise<T[]>,
   isRowChanged: (incoming: T, current: T) => boolean,
   onLoadError: () => void,
-  intervalMs = POLL_INTERVAL_MS,
+  intervalMs = DEFAULT_POLL_INTERVAL_MS,
 ) {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);

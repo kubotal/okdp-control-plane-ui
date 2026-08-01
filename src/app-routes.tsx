@@ -30,6 +30,10 @@ const CatalogPage = lazy(() => import('./features/admin/catalog/catalog-page'));
 const ProjectPage = lazy(() => import('./features/project-console/project-page'));
 const ProjectHome = lazy(() => import('./features/project-console/home/project-home'));
 const SecretsPage = lazy(() => import('./features/project-console/secret-stores/secrets-page'));
+const ConnectionsPage = lazy(() => import('./features/project-console/connections/connections-page'));
+const PlatformConnectionsPage = lazy(
+  () => import('./features/admin/connections/platform-connections-page'),
+);
 const ProjectSettingsPage = lazy(
   () => import('./features/project-console/settings/project-settings-page'),
 );
@@ -115,6 +119,15 @@ export function AppRoutes() {
             }
           />
 
+          <Route
+            path="/platform-connections"
+            element={
+              <RequireAdmin>
+                <PlatformConnectionsPage />
+              </RequireAdmin>
+            }
+          />
+
           <Route path="/settings" element={<SettingsPage />} />
           {/* Convenience entry point (user dropdown, old links): the views
               world is project-scoped — forward to the current project's. */}
@@ -126,6 +139,7 @@ export function AppRoutes() {
             <Route path=":projectId" element={<ProjectRouteSync />}>
               <Route index element={<ProjectHome />} />
               <Route path="secret-stores" element={<SecretsPage />} />
+              <Route path="connections" element={<ConnectionsPage />} />
               <Route path="settings" element={<ProjectSettingsPage />} />
 
               {/* Views world: the project's view launchers and the rich

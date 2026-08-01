@@ -19,7 +19,7 @@ import { apiErrorMessage, formatMediumDateTime } from '../services/service-utils
 import { statusTone } from './secret-status';
 import { StatusTag } from '../../../shared/components/status-tag';
 import { StatusDialog } from './status-dialog';
-import { usePolledResources } from './use-polled-resources';
+import { usePolledResources } from '../../../shared/hooks/use-polled-resources';
 import { useStatusDialog } from './use-status-dialog';
 import { SECTION_TITLE_CLASS, DIVIDER_CLASS } from './constants';
 import SearchFilter from '../../../shared/components/search-filter';
