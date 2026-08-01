@@ -58,11 +58,13 @@ All routes live in `src/app-routes.tsx`. Pages are `lazy()`-loaded and
 | `/home` | `StartPage` | `RequireAuth` |
 | `/admin` | `AdminPage` | `RequireAuth` → `RequireAdmin` |
 | `/identity` | `IdentityPage` | `RequireAuth` → `RequireAdmin` |
+| `/platform-connections` | `PlatformConnectionsPage` | `RequireAuth` → `RequireAdmin` |
 | `/settings` | `SettingsPage` | `RequireAuth` |
 | `/views` | `ViewsRedirect` → `/projects/{current}/views` | `RequireAuth` |
 | `/projects` | `ProjectList` | `RequireAuth` |
 | `/projects/:projectId` | `ProjectRouteSync` → `ProjectHome` (index) | `RequireAuth` |
 | `/projects/:projectId/secret-stores` | `SecretsPage` | same |
+| `/projects/:projectId/connections` | `ConnectionsPage` | same |
 | `/projects/:projectId/settings` | `ProjectSettingsPage` | same |
 | `/projects/:projectId/views` | `CustomViewsPage` | same |
 | `/projects/:projectId/views/sql-editor` | `SqlEditorPage` | same |
@@ -155,6 +157,7 @@ follow that pattern for new endpoints. Current clients:
 | `identity-api.ts` | `/api/v1/identity` users/groups CRUD (admin) |
 | `secret-store-api.ts` | per-project secret stores CRUD, connection test, status |
 | `external-secret-api.ts` | per-project external secrets CRUD, status |
+| `connection-api.ts` | connection type descriptors, per-project external connections CRUD + connectivity test, derived internal connections, and the same external CRUD + test at platform scope (admin) |
 | `sql-api.ts` | `execute(projectId, serviceName, query, maxRows?, signal?)` — POST `/api/projects/{id}/services/{name}/sql` to the control plane's SQL proxy |
 
 `src/core/api/ui-cache.ts` is a deliberate in-memory, per-tab,
@@ -359,7 +362,8 @@ src/
     auth/                # auth-context, auth-redirector, require-auth/admin
     context/             # project-context
     guards/              # project-route (ProjectRouteSync)
-    hooks/               # use-live-services (REST + SSE instance hook)
+    hooks/               # use-live-services (REST + SSE instance hook),
+                         # use-polled-resources (poll a list while any row is transient)
     models/              # service.model.ts, spark.model.ts
     preferences/         # localStorage-backed preference contexts
     services/            # logger.ts, project-colors.ts
@@ -367,11 +371,13 @@ src/
     theme/               # theme-context
   features/
     landing/ start/      # /login landing, /home entry
-    admin/               # admin page, identity (users/groups), project list
+    admin/               # admin page, identity (users/groups), project list,
+                         # connections (platform-wide external connections)
     custom-views/        # views world: launchers, SQL editor
     settings/            # global user settings
     project-console/     # console shell, nav-config, home dashboard,
-                         # services (generic pages), spark, secret-stores, settings
+                         # services (generic pages), spark, secret-stores,
+                         # connections (external + internal tabs), settings
   shared/
     components/          # page-header, status-tag, empty-state, dynamic-schema-form,
                          # profile-list-editor, console-shell, brand-icon, …
