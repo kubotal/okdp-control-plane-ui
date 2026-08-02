@@ -55,6 +55,24 @@ describe('ConnectionDetailDialog', () => {
     expect(screen.getByText('5432')).toBeInTheDocument();
   });
 
+  // They are plumbing for a package binding the connection, and the Credentials
+  // section says the same thing in readable form.
+  it('should keep the credential plumbing out of the details grid', () => {
+    renderDialog({
+      ...postgres,
+      values: {
+        ...postgres.values,
+        credentialsSecret: 'crm-postgres-credentials',
+        credentialsVersion: '3fd394bff9f0',
+      },
+    });
+
+    expect(screen.queryByText('credentialsVersion')).not.toBeInTheDocument();
+    expect(screen.queryByText('3fd394bff9f0')).not.toBeInTheDocument();
+    // The Credentials section still names the secret.
+    expect(screen.getByText('analytics/crm-postgres-credentials')).toBeInTheDocument();
+  });
+
   it('should show the paste-ready connection string under its own label', () => {
     renderDialog(postgres);
 

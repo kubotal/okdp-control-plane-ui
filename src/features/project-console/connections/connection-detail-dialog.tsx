@@ -80,7 +80,15 @@ export function ConnectionDetailDialog({
   // Never render a field the type marks as a credential. The server already
   // keeps them out of `values`, but this panel exists to be looked at — it
   // must not become the one place a password shows up if that ever regresses.
-  const credentialKeys = new Set(detail.credentialsSecret?.keys ?? []);
+  //
+  // The two fields describing where those credentials live are dropped too:
+  // they are plumbing for a package binding the connection, and the Credentials
+  // section below already says the same thing in readable form.
+  const credentialKeys = new Set([
+    ...(detail.credentialsSecret?.keys ?? []),
+    'credentialsSecret',
+    'credentialsVersion',
+  ]);
   const entries = Object.entries(detail.values ?? {}).filter(([key]) => !credentialKeys.has(key));
 
   return (
