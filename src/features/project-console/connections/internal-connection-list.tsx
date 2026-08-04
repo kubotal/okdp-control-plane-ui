@@ -108,7 +108,11 @@ export function InternalConnectionList() {
             field="service"
             style={{ width: '14%' }}
             className="text-[13px] text-fg-secondary"
-            body={(connection: InternalConnection) => connection.service || '-'}
+            body={(connection: InternalConnection) =>
+              // A managed connection published by a release carries no service
+              // label; the release name is the honest answer.
+              connection.service || connection.releaseName || '-'
+            }
           />
           <Column
             header="Endpoint"
