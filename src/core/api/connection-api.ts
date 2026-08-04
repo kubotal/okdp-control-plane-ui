@@ -128,6 +128,20 @@ export interface InternalConnection {
   createdAt?: string;
 }
 
+/** A connection offered when deploying a service whose package declares an
+ *  input. Managed connections are included: a Trino published by another
+ *  release is exactly what a new service wants to bind. */
+export interface SelectableConnection {
+  name: string;
+  scope: ConnectionScope;
+  type: string;
+  status: string;
+  description?: string;
+  managed: boolean;
+  /** Release publishing a managed connection. */
+  providedBy?: string;
+}
+
 export type ConnectionTestReason =
   | 'unreachable'
   | 'auth-failed'
@@ -199,5 +213,12 @@ export const connectionApi = {
 
   listInternal(projectId: string): Promise<InternalConnection[]> {
     return http.getList<InternalConnection>(`${projectUrl(projectId)}/internal`);
+  },
+
+  /** Connections a deployment form can offer for an input of that contract. */
+  selectable(projectId: string, iface: string): Promise<SelectableConnection[]> {
+    return http.getList<SelectableConnection>(
+      `${projectUrl(projectId)}/selectable?interface=${seg(iface)}`,
+    );
   },
 };
