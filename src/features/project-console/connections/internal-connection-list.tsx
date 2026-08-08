@@ -137,6 +137,7 @@ export function InternalConnectionList() {
             icon: detail.icon,
             description: `Provided by ${detail.service || detail.releaseName} in this project.`,
             status: detail.status,
+            namespace: detail.namespace,
             values: detail.values,
           }
         }

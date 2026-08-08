@@ -10,6 +10,10 @@ export interface ConnectionDetail {
   icon?: string;
   description?: string;
   status?: string;
+  /** Namespace of the connection itself, to tell whether the credentials Secret
+   *  sits somewhere else. Repeating the namespace we are already looking at is
+   *  noise; naming a different one is the whole point. */
+  namespace?: string;
   /** Why the connection is not usable. In the list it only exists as a native
    *  tooltip, which cannot be selected, copied, or reached with a keyboard. */
   message?: string;
@@ -146,7 +150,8 @@ export function ConnectionDetailDialog({
                   instead of being pushed to the far edge of the row. */}
               <dd className="flex items-center gap-1">
                 <span className="mono min-w-0 break-all">
-                  {detail.credentialsSecret.namespace
+                  {detail.credentialsSecret.namespace &&
+                  detail.credentialsSecret.namespace !== detail.namespace
                     ? `${detail.credentialsSecret.namespace}/${detail.credentialsSecret.name}`
                     : detail.credentialsSecret.name}
                 </span>
@@ -171,9 +176,8 @@ export function ConnectionDetailDialog({
               <i className="pi pi-info-circle mt-0.5 text-[12px]" aria-hidden="true" />
               <span>
                 {detail.credentialsSecret.owned
-                  ? 'Written by the console, and deleted with this connection.'
-                  : 'Comes from outside the console, and stays when this connection goes.'}{' '}
-                Their values are never read here.
+                  ? 'Created here, and deleted with this connection.'
+                  : 'Created outside the console, and kept when this connection is deleted.'}
               </span>
             </p>
           </div>

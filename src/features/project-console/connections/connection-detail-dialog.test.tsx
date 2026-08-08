@@ -116,6 +116,27 @@ describe('ConnectionDetailDialog', () => {
       credentialsSecret: { ...postgres.credentialsSecret!, name: 'from-vault', owned: false },
     });
 
-    expect(screen.getByText(/stays when this connection goes/)).toBeInTheDocument();
+    expect(screen.getByText(/kept when this connection is deleted/)).toBeInTheDocument();
+  });
+
+  // Repeating the namespace the reader is already in is noise: a project
+  // connection keeps its Secret in the project.
+  it('shows the secret name alone when it lives where the connection lives', () => {
+    renderDialog({ ...postgres, namespace: 'analytics' });
+
+    expect(screen.getByText('crm-postgres-credentials')).toBeInTheDocument();
+    expect(screen.queryByText('analytics/crm-postgres-credentials')).not.toBeInTheDocument();
+  });
+
+  // A platform connection keeps its Secret in the platform namespace, which is
+  // not the one being looked at, so it has to be named.
+  it('qualifies the secret when it sits in another namespace', () => {
+    renderDialog({
+      ...postgres,
+      namespace: 'analytics',
+      credentialsSecret: { ...postgres.credentialsSecret!, namespace: 'okdp-system' },
+    });
+
+    expect(screen.getByText('okdp-system/crm-postgres-credentials')).toBeInTheDocument();
   });
 });

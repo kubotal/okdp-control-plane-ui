@@ -549,6 +549,7 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
             icon: catalog?.types.find((t) => t.name === detail.type)?.icon,
             description: detail.description,
             status: detail.status,
+            namespace: detail.namespace,
             message: detail.message,
             values: detail.values,
             credentialsSecret: detail.credentialsSecret,
