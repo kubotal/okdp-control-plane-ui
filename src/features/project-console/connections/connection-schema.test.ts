@@ -59,14 +59,15 @@ describe('toDynamicSchema', () => {
     expect(schema.properties.sslMode.enum).toEqual(['disable', 'require']);
   });
 
-  it('masks a password, and only what is declared masked', () => {
+  // Credentials do not go where the other values go: they land in a Secret,
+  // and they may not need typing at all when one already exists. CredentialsBlock
+  // renders them, so they are absent from this schema.
+  it('leaves the credentials out of the form schema', () => {
     const schema = toDynamicSchema(POSTGRES);
 
-    expect(schema.properties.password['x-ui-widget']).toBe('password');
-    expect(schema.properties.host['x-ui-widget']).toBeUndefined();
-    // Stored in the Secret, but hiding it would only stop the user from
-    // checking what they typed.
-    expect(schema.properties.username['x-ui-widget']).toBeUndefined();
+    expect(schema.properties.password).toBeUndefined();
+    expect(schema.properties.username).toBeUndefined();
+    expect(schema.properties.host).toBeDefined();
   });
 
   it('leaves a derived field out of the form, and out of what it demands', () => {
@@ -92,30 +93,17 @@ describe('toDynamicSchema', () => {
 
   it('requires every required field when creating', () => {
     // tls stays in the list: it is required when it applies, and the form
-    // decides whether it applies from its condition.
-    expect(toDynamicSchema(POSTGRES).required).toEqual([
-      'host',
-      'port',
-      'username',
-      'password',
-      'sslMode',
-      'tls',
-    ]);
+    // decides whether it applies from its condition. Credentials are not here.
+    expect(toDynamicSchema(POSTGRES).required).toEqual(['host', 'port', 'sslMode', 'tls']);
   });
 
-  it('stops requiring a credential when editing, since it is already stored', () => {
-    const schema = toDynamicSchema(POSTGRES, true);
-
-    expect(schema.required).toEqual(['host', 'port', 'sslMode', 'tls']);
-    expect(schema.properties.password.description).toContain('Leave blank to keep');
-  });
 });
 
 describe('missingRequiredFields', () => {
   it('reports the labels of the fields left empty', () => {
     const missing = missingRequiredFields(POSTGRES, { port: 5432, sslMode: 'require' });
 
-    expect(missing).toEqual(['Host', 'User', 'Password']);
+    expect(missing).toEqual(['Host']);
   });
 
   it('accepts a fully filled form', () => {
@@ -145,15 +133,6 @@ describe('missingRequiredFields', () => {
     expect(missing).toEqual([]);
   });
 
-  it('does not demand a credential when editing', () => {
-    const missing = missingRequiredFields(
-      POSTGRES,
-      { host: 'db.example.com', port: 5432, sslMode: 'require' },
-      true,
-    );
-
-    expect(missing).toEqual([]);
-  });
 });
 
 describe('omitBlankSecrets', () => {

@@ -28,6 +28,7 @@ import { usePolledResources } from '../../../shared/hooks/use-polled-resources';
 import SearchFilter from '../../../shared/components/search-filter';
 import { PageHeader } from '../../../shared/components/page-header';
 import { ConnectionDetailDialog } from './connection-detail-dialog';
+import { CredentialsBlock, type CredentialsMode } from './credentials-block';
 import { useToastMessages } from '../../../shared/hooks/use-toast-messages';
 import { useRowActionsMenu } from '../../../shared/hooks/use-row-actions-menu';
 import { k8sNameError } from '../../../shared/utils/k8s-names';
@@ -77,6 +78,10 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
+  // Credentials either get typed in, and the console writes a Secret, or they
+  // already live in one, typically projected from a vault by External Secrets.
+  const [credentialsMode, setCredentialsMode] = useState<CredentialsMode>('enter');
+  const [existingSecret, setExistingSecret] = useState('');
 
   // The platform scope is not project-scoped, but usePolledResources keys on a
   // project id; a constant stands in so polling still starts.
@@ -112,19 +117,35 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
 
   // Memoised: DynamicSchemaForm re-initialises whenever the schema's identity
   // changes, so handing it a fresh object each render would loop.
-  const schema = useMemo(
-    () => (selectedType ? toDynamicSchema(selectedType, editMode) : null),
-    [selectedType, editMode],
-  );
+  const schema = useMemo(() => (selectedType ? toDynamicSchema(selectedType) : null), [selectedType]);
 
   const crdAvailable = catalog?.crdAvailable ?? true;
   const nameError = k8sNameError(name);
-  const missingFields = selectedType ? missingRequiredFields(selectedType, values, editMode) : [];
-  // Testing sends only what the form holds — the endpoint cannot read the
-  // stored Secret — so a credential must be present even on an edit, where
-  // saving would have been happy to keep the stored one.
-  const missingToTest = selectedType ? missingRequiredFields(selectedType, values, false) : [];
-  const formValid = Boolean(selectedType) && Boolean(name) && !nameError && missingFields.length === 0;
+  const missingFields = selectedType ? missingRequiredFields(selectedType, values) : [];
+  const credentialFields = selectedType?.fields.filter((field) => field.secret) ?? [];
+  // On an edit the stored credentials are kept when nothing is retyped, so a
+  // blank field is not a missing one.
+  const missingCredentials =
+    credentialsMode === 'existing'
+      ? existingSecret
+        ? []
+        : ['Secret name']
+      : editMode
+        ? []
+        : credentialFields.filter((f) => f.required && !values[f.name]).map((f) => f.label);
+  // Testing sends only what the form holds, the endpoint cannot read a Secret,
+  // so credentials must be present even on an edit and even when the connection
+  // points at an existing Secret.
+  const missingToTest = [
+    ...missingFields,
+    ...credentialFields.filter((f) => f.required && !values[f.name]).map((f) => f.label),
+  ];
+  const formValid =
+    Boolean(selectedType) &&
+    Boolean(name) &&
+    !nameError &&
+    missingFields.length === 0 &&
+    missingCredentials.length === 0;
 
   const openCreateDialog = () => {
     setEditMode(false);
@@ -134,6 +155,8 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
     setValues({});
     setInitialValues({});
     setTestResult(null);
+    setCredentialsMode('enter');
+    setExistingSecret('');
     setDialogVisible(true);
   };
 
@@ -147,6 +170,13 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
     setValues({ ...connection.values });
     setInitialValues({ ...connection.values });
     setTestResult(null);
+    // A connection whose Secret is not the one the console would have created
+    // points at somebody else's, so the dialog reopens in that mode.
+    const ownSecret = `${connection.name}-credentials`;
+    const referenced = connection.credentialsSecret?.name ?? '';
+    const pointsElsewhere = Boolean(referenced) && referenced !== ownSecret;
+    setCredentialsMode(pointsElsewhere ? 'existing' : 'enter');
+    setExistingSecret(pointsElsewhere ? referenced : '');
     setDialogVisible(true);
   };
 
@@ -155,6 +185,7 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
     type: typeName,
     description: description || undefined,
     values: selectedType ? omitBlankSecrets(selectedType, values) : values,
+    existingSecret: credentialsMode === 'existing' ? existingSecret : undefined,
   });
 
   const testConnection = () => {
@@ -427,10 +458,25 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
             />
           )}
 
+          {selectedType && (
+            <CredentialsBlock
+              connectionType={selectedType}
+              mode={credentialsMode}
+              onModeChange={setCredentialsMode}
+              values={values}
+              onValueChange={(field, value) => setValues((v) => ({ ...v, [field]: value }))}
+              existingSecret={existingSecret}
+              onExistingSecretChange={setExistingSecret}
+              editMode={editMode}
+            />
+          )}
+
           {/* The Save button is disabled until the form is complete. Naming
               what is missing beats leaving the user to hunt for it. */}
-          {selectedType && missingFields.length > 0 && (
-            <small className="field-hint">Still to fill in: {missingFields.join(', ')}.</small>
+          {selectedType && [...missingFields, ...missingCredentials].length > 0 && (
+            <small className="field-hint">
+              Still to fill in: {[...missingFields, ...missingCredentials].join(', ')}.
+            </small>
           )}
 
           {testResult && (

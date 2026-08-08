@@ -6,17 +6,20 @@ import type { ConnectionType, ConnectionValues } from '../../../core/api/connect
  *  consumes, so connection forms look and behave like the service deployment
  *  forms instead of introducing a second form generator.
  *
- *  On an edit, credentials are not pre-filled — the API never returns them —
- *  and leaving one blank keeps the stored value, which `omitBlankSecrets`
- *  below relies on. */
-export function toDynamicSchema(type: ConnectionType, editMode = false): any {
+ *  Credentials are deliberately absent: CredentialsBlock renders them, because
+ *  they go to a Secret rather than to the connection. */
+export function toDynamicSchema(type: ConnectionType): any {
   const properties: Record<string, any> = {};
 
   type.fields.forEach((field, index) => {
     // A derived field is not asked for: the server recomputes it from its
     // source on save, and a form letting the two disagree only produces
     // connections nothing can open.
-    if (field.derived) {
+    //
+    // Credentials are not here either: CredentialsBlock renders them apart,
+    // because they go to a Secret rather than to the connection, and because
+    // they may not need typing at all when one already exists.
+    if (field.derived || field.secret) {
       return;
     }
     properties[field.name] = {
@@ -25,7 +28,7 @@ export function toDynamicSchema(type: ConnectionType, editMode = false): any {
       type: field.type === 'enum' ? 'string' : field.type,
       title: field.label,
       default: field.default,
-      description: secretHelp(field.secret, field.help, editMode),
+      description: field.help,
       enum: field.options,
       minimum: field.min,
       maximum: field.max,
@@ -40,30 +43,20 @@ export function toDynamicSchema(type: ConnectionType, editMode = false): any {
 
   return {
     properties,
-    // A credential already stored is not demanded again on an edit, and a
-    // derived field is never typed in at all.
+    // Credentials and derived fields are not part of this form.
     required: type.fields
-      .filter((field) => field.required && !field.derived && !(editMode && field.secret))
+      .filter((field) => field.required && !field.derived && !field.secret)
       .map((field) => field.name),
   };
 }
 
-function secretHelp(secret: boolean | undefined, help: string | undefined, editMode: boolean) {
-  if (secret && editMode) {
-    return help ? `${help} Leave blank to keep the stored value.` : 'Leave blank to keep the stored value.';
-  }
-  return help;
-}
-
 /** Names of the fields the user must fill in, for the Save button's state.
- *  DynamicSchemaForm reports format errors but does not enforce required. */
-export function missingRequiredFields(
-  type: ConnectionType,
-  values: ConnectionValues,
-  editMode = false,
-): string[] {
+ *  DynamicSchemaForm reports format errors but does not enforce required.
+ *  Credentials are checked by the dialog, which knows whether they are typed in
+ *  or taken from an existing Secret. */
+export function missingRequiredFields(type: ConnectionType, values: ConnectionValues): string[] {
   return type.fields
-    .filter((field) => field.required && !field.derived && !(editMode && field.secret))
+    .filter((field) => field.required && !field.derived && !field.secret)
     // A field the chosen engine rules out is not on screen, so demanding it
     // would grey out Save with nothing to click on.
     .filter((field) => !field.showWhen || values[field.showWhen.field] === field.showWhen.value)

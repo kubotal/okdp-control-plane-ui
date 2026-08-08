@@ -102,14 +102,11 @@ describe('the database-server form as a user sees it', () => {
     expect(screen.getByLabelText(/^Port/)).toHaveValue('5432');
   });
 
-  it('hides the password and only the password', () => {
-    const { container } = renderForm();
+  it('does not ask for the credentials, which the credentials block renders', () => {
+    renderForm();
 
-    // The user name is stored in the Secret too, but hiding it behind dots
-    // only stops the user from checking what they typed.
-    expect(container.querySelector('input#password')?.getAttribute('type')).toBe('password');
-    expect(screen.getByLabelText(/^User/)).toBeInTheDocument();
-    expect(container.querySelector('input#username')?.getAttribute('type')).not.toBe('password');
+    expect(screen.queryByLabelText(/^Password/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^User/)).not.toBeInTheDocument();
   });
 
   it('offers the MySQL wording, and only it, on a MySQL connection', () => {

@@ -90,6 +90,10 @@ export interface ConnectionRequest {
   type: string;
   description?: string;
   values: ConnectionValues;
+  /** Names a Secret already present in the project, holding the credentials.
+   *  When set, the server writes no Secret of its own: the credentials may come
+   *  from anywhere, typically projected from a vault by External Secrets. */
+  existingSecret?: string;
 }
 
 /** A connection provided by a service already deployed in the project. */

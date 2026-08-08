@@ -57,12 +57,22 @@ describe('InternalConnectionList', () => {
     listInternal.mockResolvedValue([TRINO, STORAGE]);
   });
 
-  it('lists what the project services expose, with their in-cluster endpoint', async () => {
+  it('lists the connections the project services publish', async () => {
     renderList();
 
     expect(await screen.findByText('demo-trino')).toBeInTheDocument();
     expect(screen.getByText('Trino')).toBeInTheDocument();
-    expect(screen.getByText('demo-trino.demo.svc.cluster.local:8080')).toBeInTheDocument();
+  });
+
+  // The address column went with the usage block: an address is something the
+  // controller resolves, not something to copy into another form. It stays
+  // readable in the detail panel, as a value of the contract.
+  it('does not put an address on the row', async () => {
+    renderList();
+    await screen.findByText('demo-trino');
+
+    expect(screen.queryByText('demo-trino.demo.svc.cluster.local:8080')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Copy the endpoint/)).not.toBeInTheDocument();
   });
 
   it('filters the list, so a Trino is findable among a project’s services', async () => {
@@ -78,38 +88,8 @@ describe('InternalConnectionList', () => {
     expect(screen.getByText('demo-trino')).toBeInTheDocument();
   });
 
-  // Some contracts carry no address at all: oidc publishes an issuer and its
-  // endpoints, not a host. Saying so beats inventing one.
-  it('says a contract has no address rather than showing one that would not resolve', async () => {
-    listInternal.mockResolvedValue([{ ...TRINO, endpoint: '', host: '', port: 0 }]);
 
-    renderList();
 
-    expect(await screen.findByText('no address')).toBeInTheDocument();
-  });
-
-  it('copies the endpoint so it can be pasted into another service configuration', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-
-    renderList();
-    await screen.findByText('demo-trino');
-
-    fireEvent.click(screen.getByLabelText('Copy the endpoint of demo-trino'));
-
-    expect(writeText).toHaveBeenCalledWith('demo-trino.demo.svc.cluster.local:8080');
-    // The confirmation toast lands after the clipboard promise settles.
-    await screen.findByText('Copied demo-trino.demo.svc.cluster.local:8080');
-  });
-
-  it('offers no copy action while the endpoint is unresolved', async () => {
-    listInternal.mockResolvedValue([{ ...TRINO, endpoint: '', host: '', port: 0 }]);
-
-    renderList();
-    await screen.findByText('demo-trino');
-
-    expect(screen.getByLabelText('Copy the endpoint of demo-trino')).toBeDisabled();
-  });
 
   it('shows an explicit empty state when no service exposes anything', async () => {
     listInternal.mockResolvedValue([]);

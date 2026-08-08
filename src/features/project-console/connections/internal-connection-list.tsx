@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { connectionApi, type InternalConnection } from '../../../core/api/connection-api';
 import { formatMediumDateTime } from '../services/service-utils';
@@ -17,7 +16,6 @@ import { ConnectionDetailDialog } from './connection-detail-dialog';
 const isConnectionChanged = (incoming: InternalConnection, current: InternalConnection) =>
   incoming.name !== current.name ||
   incoming.status !== current.status ||
-  incoming.endpoint !== current.endpoint ||
   incoming.managed !== current.managed;
 
 /** Connections provided by the services already deployed in the project — a
@@ -36,13 +34,6 @@ export function InternalConnectionList() {
   );
 
   const [detail, setDetail] = useState<InternalConnection | null>(null);
-
-  const copyEndpoint = (connection: InternalConnection) => {
-    navigator.clipboard
-      .writeText(connection.endpoint)
-      .then(() => showSuccess(`Copied ${connection.endpoint}`))
-      .catch(() => showError('Could not copy the endpoint to the clipboard'));
-  };
 
   const onCopied = (what: string) =>
     what ? showSuccess(`Copied ${what}`) : showError('Could not copy to the clipboard');
@@ -70,7 +61,7 @@ export function InternalConnectionList() {
           value={connections}
           loading={loading}
           globalFilter={globalFilter}
-          globalFilterFields={['name', 'type', 'typeDisplay', 'service', 'endpoint', 'status']}
+          globalFilterFields={['name', 'type', 'typeDisplay', 'service', 'status']}
           className="minimal-table"
           dataKey="name"
           rowClassName={() => 'cluster-row cursor-pointer'}
@@ -116,20 +107,6 @@ export function InternalConnectionList() {
             }
           />
           <Column
-            header="Endpoint"
-            style={{ width: '26%' }}
-            className="max-w-0 overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-fg-secondary mono"
-            body={(connection: InternalConnection) =>
-              connection.endpoint ? (
-                <span title={connection.endpoint}>{connection.endpoint}</span>
-              ) : (
-                // The contract carries no address of its own. oidc is the case:
-                // its consumers read the issuer and the endpoints, not a host.
-                <span className="italic opacity-70">no address</span>
-              )
-            }
-          />
-          <Column
             header="Status"
             field="status"
             style={{ width: '10%' }}
@@ -148,27 +125,6 @@ export function InternalConnectionList() {
             body={(connection: InternalConnection) =>
               connection.createdAt ? formatMediumDateTime(connection.createdAt) : '-'
             }
-          />
-          <Column
-            style={{ width: '8%', textAlign: 'right' }}
-            body={(connection: InternalConnection) => (
-              <div className="actions">
-                <Button
-                  icon="pi pi-copy"
-                  text
-                  rounded
-                  disabled={!connection.endpoint}
-                  onClick={(event) => {
-                    // The row itself opens the detail dialog; copying is a
-                    // shortcut and must not open it as well.
-                    event.stopPropagation();
-                    copyEndpoint(connection);
-                  }}
-                  title="Copy endpoint"
-                  aria-label={`Copy the endpoint of ${connection.name}`}
-                />
-              </div>
-            )}
           />
         </DataTable>
       </div>

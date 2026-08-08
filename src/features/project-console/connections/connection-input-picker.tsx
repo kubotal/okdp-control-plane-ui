@@ -17,6 +17,7 @@ import { DialogFooter } from '../../../shared/components/dialog-footer';
 import { k8sNameError } from '../../../shared/utils/k8s-names';
 import { missingRequiredFields, omitBlankSecrets, toDynamicSchema } from './connection-schema';
 import { testResultIcon } from './connection-status';
+import { CredentialsBlock, type CredentialsMode } from './credentials-block';
 
 /** Internal sentinel for "no connection" — PrimeReact's Dropdown mishandles an
  *  option whose value is the empty string, so the option carries this value and
@@ -203,10 +204,19 @@ function InlineConnectionCreate({
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
   const [error, setError] = useState('');
+  const [credentialsMode, setCredentialsMode] = useState<CredentialsMode>('enter');
+  const [existingSecret, setExistingSecret] = useState('');
 
   const schema = useMemo(() => toDynamicSchema(connectionType), [connectionType]);
   const nameError = name ? k8sNameError(name) : null;
-  const missingFields = missingRequiredFields(connectionType, values);
+  const credentialFields = connectionType.fields.filter((field) => field.secret);
+  const missingCredentials =
+    credentialsMode === 'existing'
+      ? existingSecret
+        ? []
+        : ['Secret name']
+      : credentialFields.filter((f) => f.required && !values[f.name]).map((f) => f.label);
+  const missingFields = [...missingRequiredFields(connectionType, values), ...missingCredentials];
   const formValid = !!name && !nameError && missingFields.length === 0;
 
   const api = connectionApi.project(projectId);
@@ -229,6 +239,7 @@ function InlineConnectionCreate({
         name,
         type: connectionType.name,
         values: omitBlankSecrets(connectionType, values),
+        existingSecret: credentialsMode === 'existing' ? existingSecret : undefined,
       })
       .then(() => {
         setSaving(false);
@@ -289,6 +300,15 @@ function InlineConnectionCreate({
           {nameError && <small className="field-hint err">{nameError}</small>}
         </div>
         <DynamicSchemaForm schema={schema} onParametersChange={setValues} />
+        <CredentialsBlock
+          connectionType={connectionType}
+          mode={credentialsMode}
+          onModeChange={setCredentialsMode}
+          values={values}
+          onValueChange={(field, value) => setValues((v) => ({ ...v, [field]: value }))}
+          existingSecret={existingSecret}
+          onExistingSecretChange={setExistingSecret}
+        />
         {/* Same reason as the Connections page: a disabled button that says
             nothing leaves the user hunting for the empty field. */}
         {missingFields.length > 0 && (
