@@ -1,11 +1,6 @@
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
-import type {
-  ConnectionUsage,
-  ConnectionValues,
-  CredentialsSecretRef,
-} from '../../../core/api/connection-api';
-import { envBlock } from './connection-usage-format';
+import type { ConnectionValues, CredentialsSecretRef } from '../../../core/api/connection-api';
 import { connectionStatusTone } from './connection-status';
 import { StatusTag } from '../../../shared/components/status-tag';
 
@@ -19,7 +14,6 @@ export interface ConnectionDetail {
    *  tooltip, which cannot be selected, copied, or reached with a keyboard. */
   message?: string;
   values: ConnectionValues;
-  usage?: ConnectionUsage;
   credentialsSecret?: CredentialsSecretRef;
 }
 
@@ -62,9 +56,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 /**
- * Everything needed to consume a connection, opened from either list. The
- * values, the paste-ready string and the environment variables come rendered
- * from the server, so a new connection type needs no change here.
+ * What a connection actually holds, opened from either list: its values, its
+ * state when it is not ready, and where its credentials live. Consuming it is
+ * the controller's job, so this panel describes and never instructs.
  */
 export function ConnectionDetailDialog({
   detail,
@@ -81,20 +75,16 @@ export function ConnectionDetailDialog({
     return null;
   }
 
-  const usage = detail.usage;
-  const env = usage?.env ?? [];
   // Never render a field the type marks as a credential. The server already
   // keeps them out of `values`, but this panel exists to be looked at — it
   // must not become the one place a password shows up if that ever regresses.
   //
-  // The two fields describing where those credentials live are dropped too:
-  // they are plumbing for a package binding the connection, and the Credentials
-  // section below already says the same thing in readable form.
-  const credentialKeys = new Set([
-    ...(detail.credentialsSecret?.keys ?? []),
-    'credentialsSecret',
-    'credentialsVersion',
-  ]);
+  // The field naming the Secret is dropped too: it is plumbing for a package
+  // binding the connection, and the Credentials section below says the same
+  // thing in readable form. `credentialsSecret` and `credentialsVersion` were
+  // its previous names, and were still filtered here long after `secretRef`
+  // replaced them, which let the live key through and hid nothing.
+  const credentialKeys = new Set([...(detail.credentialsSecret?.keys ?? []), 'secretRef']);
   const entries = Object.entries(detail.values ?? {}).filter(([key]) => !credentialKeys.has(key));
 
   return (
@@ -145,15 +135,6 @@ export function ConnectionDetailDialog({
         </Section>
       )}
 
-      {usage?.uri && (
-        <Section title={usage.uriLabel || 'Connection string'}>
-          <div className="flex items-start gap-2 rounded-xs border border-border-light bg-surface-secondary p-2">
-            <code className="mono flex-1 text-[12px] break-all">{usage.uri}</code>
-            <CopyButton text={usage.uri} label="the connection string" onCopied={onCopied} />
-          </div>
-        </Section>
-      )}
-
       {detail.credentialsSecret && (
         <Section title="Credentials">
           <div className="rounded-xs border border-border-light bg-surface-secondary p-2 text-[13px]">
@@ -171,21 +152,10 @@ export function ConnectionDetailDialog({
             </div>
             {detail.credentialsSecret.keys?.length ? (
               <p className="mt-1 text-[12px] text-fg-secondary">
-                Keys: <span className="mono">{detail.credentialsSecret.keys.join(', ')}</span> — the
-                console never reads their values; reference the Secret from your workload.
+                Keys: <span className="mono">{detail.credentialsSecret.keys.join(', ')}</span>. The
+                console never reads their values.
               </p>
             ) : null}
-          </div>
-        </Section>
-      )}
-
-      {env.length > 0 && (
-        <Section title="Environment variables">
-          <div className="flex items-start gap-2 rounded-xs border border-border-light bg-surface-secondary p-2">
-            <pre className="mono flex-1 overflow-x-auto text-[12px] whitespace-pre">
-              {envBlock(env)}
-            </pre>
-            <CopyButton text={envBlock(env)} label="the environment variables" onCopied={onCopied} />
           </div>
         </Section>
       )}

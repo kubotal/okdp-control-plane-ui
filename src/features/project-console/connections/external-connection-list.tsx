@@ -466,7 +466,6 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
             status: detail.status,
             message: detail.message,
             values: detail.values,
-            usage: detail.usage,
             credentialsSecret: detail.credentialsSecret,
           }
         }

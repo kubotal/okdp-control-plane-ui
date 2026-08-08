@@ -181,7 +181,6 @@ export function InternalConnectionList() {
             description: `Provided by ${detail.service || detail.releaseName} in this project.`,
             status: detail.status,
             values: detail.values,
-            usage: detail.usage,
           }
         }
         visible={detail !== null}

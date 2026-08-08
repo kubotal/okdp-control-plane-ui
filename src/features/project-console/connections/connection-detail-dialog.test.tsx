@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { ConnectionDetailDialog, type ConnectionDetail } from './connection-detail-dialog';
 
 const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
@@ -8,18 +8,7 @@ const postgres: ConnectionDetail = {
   name: 'crm-postgres',
   typeDisplay: 'PostgreSQL',
   description: 'CRM externe',
-  values: { host: 'crm.corp.example.com', port: 5432, database: 'crm', user: 'reader' },
-  usage: {
-    uri: 'postgresql://reader:${PGPASSWORD}@crm.corp.example.com:5432/crm?sslmode=require',
-    uriLabel: 'Connection URI',
-    env: [
-      { name: 'PGHOST', value: 'crm.corp.example.com' },
-      {
-        name: 'PGPASSWORD',
-        secretRef: { name: 'crm-postgres-credentials', namespace: 'analytics', key: 'password' },
-      },
-    ],
-  },
+  values: { host: 'crm.corp.example.com', port: 5432, dbName: 'crm', username: 'reader' },
   credentialsSecret: {
     name: 'crm-postgres-credentials',
     namespace: 'analytics',
@@ -57,27 +46,19 @@ describe('ConnectionDetailDialog', () => {
 
   // They are plumbing for a package binding the connection, and the Credentials
   // section says the same thing in readable form.
+  // secretRef is plumbing for a package binding the connection, and the
+  // Credentials section says the same thing in readable form. The filter used to
+  // name credentialsSecret and credentialsVersion, two keys that no longer
+  // exist, and let secretRef straight through.
   it('should keep the credential plumbing out of the details grid', () => {
     renderDialog({
       ...postgres,
-      values: {
-        ...postgres.values,
-        credentialsSecret: 'crm-postgres-credentials',
-        credentialsVersion: '3fd394bff9f0',
-      },
+      values: { ...postgres.values, secretRef: 'crm-postgres-credentials' },
     });
 
-    expect(screen.queryByText('credentialsVersion')).not.toBeInTheDocument();
-    expect(screen.queryByText('3fd394bff9f0')).not.toBeInTheDocument();
+    expect(screen.queryByText('secretRef')).not.toBeInTheDocument();
     // The Credentials section still names the secret.
     expect(screen.getByText('analytics/crm-postgres-credentials')).toBeInTheDocument();
-  });
-
-  it('should show the paste-ready connection string under its own label', () => {
-    renderDialog(postgres);
-
-    expect(screen.getByText('Connection URI')).toBeInTheDocument();
-    expect(screen.getByText(/postgresql:\/\/reader:\$\{PGPASSWORD\}@/)).toBeInTheDocument();
   });
 
   it('should name the secret holding the credentials, and its keys', () => {
@@ -94,29 +75,9 @@ describe('ConnectionDetailDialog', () => {
       ...postgres,
       // Even if the API regressed and sent one, it must not be rendered.
       values: { ...postgres.values, password: 's3cret' } as ConnectionDetail['values'],
-      usage: postgres.usage,
     });
 
     expect(screen.queryByText('s3cret')).not.toBeInTheDocument();
-  });
-
-  it('should copy the connection string to the clipboard', async () => {
-    const { onCopied } = renderDialog(postgres);
-
-    fireEvent.click(screen.getByLabelText('Copy the connection string'));
-
-    expect(writeText).toHaveBeenCalledWith(postgres.usage!.uri);
-    await waitFor(() => expect(onCopied).toHaveBeenCalledWith('the connection string'));
-  });
-
-  it('should copy the environment block with the credential as a kubectl command', async () => {
-    renderDialog(postgres);
-
-    fireEvent.click(screen.getByLabelText('Copy the environment variables'));
-
-    const copied = writeText.mock.calls.at(-1)![0];
-    expect(copied).toContain('PGHOST=crm.corp.example.com');
-    expect(copied).toContain('kubectl get secret crm-postgres-credentials -n analytics');
   });
 
   // An internal connection carries no Secret; the section must simply not appear.
@@ -125,14 +86,9 @@ describe('ConnectionDetailDialog', () => {
       name: 'analytics-trino',
       typeDisplay: 'Trino',
       values: { host: 'trino.analytics.svc.cluster.local', port: 8080 },
-      usage: {
-        uri: 'jdbc:trino://trino.analytics.svc.cluster.local:8080',
-        uriLabel: 'JDBC URL',
-        env: [{ name: 'TRINO_HOST', value: 'trino.analytics.svc.cluster.local' }],
-      },
     });
 
-    expect(screen.getByText('JDBC URL')).toBeInTheDocument();
+    expect(screen.getByText('Details')).toBeInTheDocument();
     expect(screen.queryByText('Credentials')).not.toBeInTheDocument();
   });
 

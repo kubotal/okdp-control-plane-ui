@@ -249,8 +249,8 @@ export default function ServiceDetailPage() {
         message={
           instance && (
             <>
-              This will remove <strong>{instance.name}</strong> and all its pods. This cannot be
-              undone.
+              This will remove <strong>{instance.name}</strong>, its pods, and the volumes it
+              created for its users, notebook home directories included. This cannot be undone.
             </>
           )
         }
