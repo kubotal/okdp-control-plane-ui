@@ -86,6 +86,19 @@ function resolveWidget(field: SchemaField): string {
   return 'text';
 }
 
+/** How a numeric field is displayed. Two things a general-purpose number input
+ *  gets wrong here: thousands separators turn port 5432 into "5,432", and a
+ *  forced decimal turns it into "5432.0". Neither is a number anyone typed.
+ *  Decimals are allowed but never imposed, so a replica count stays whole and
+ *  a CPU request can still be 0.5. */
+function fractionProps(field: SchemaField) {
+  return {
+    useGrouping: false,
+    minFractionDigits: undefined,
+    maxFractionDigits: field.type === 'number' ? 3 : 0,
+  };
+}
+
 function toOptions(enumValues: any[]): { label: string; value: any }[] {
   return enumValues.map((v) => ({ label: String(v), value: v }));
 }
@@ -341,8 +354,7 @@ export function DynamicSchemaForm({
             step={field.multipleOf || 1}
             min={field.minimum}
             max={field.maximum}
-            minFractionDigits={field.type === 'number' ? 1 : 0}
-            maxFractionDigits={field.type === 'number' ? 2 : 0}
+            {...fractionProps(field)}
             incrementButtonIcon="pi pi-plus"
             decrementButtonIcon="pi pi-minus"
             className="w-full"
@@ -357,8 +369,7 @@ export function DynamicSchemaForm({
             min={field.minimum}
             max={field.maximum}
             step={field.multipleOf || 1}
-            minFractionDigits={field.type === 'number' ? 1 : 0}
-            maxFractionDigits={field.type === 'number' ? 2 : 0}
+            {...fractionProps(field)}
             className="w-full"
             onValueChange={(e) => setValue(field.name, e.value)}
           />
@@ -410,6 +421,13 @@ export function DynamicSchemaForm({
             >
               <label htmlFor={field.name} className={FIELD_LABEL_CLASS}>
                 {field.title || formatLabel(field.name)}
+                {/* Without this the only sign a field is mandatory is a Save
+                    button that stays grey, with nothing saying which one. */}
+                {field.required && (
+                  <span className="text-danger" aria-hidden="true">
+                    {' *'}
+                  </span>
+                )}
               </label>
               {renderWidget(field)}
               {fieldErrors[field.name] && (

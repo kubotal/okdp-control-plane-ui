@@ -73,14 +73,24 @@ export default function ServiceDeployPage() {
   // Connections the package declares it needs. Only inputs carrying a
   // parameter are offered — the others bind without a user choice.
   const [packageInputs, setPackageInputs] = useState<PackageInput[]>([]);
+  /** An empty list of inputs and an unread one look the same, and deploying on
+   *  the second means the release waits for a connection nobody was asked for.
+   *  The wizard therefore refuses to advance until this reaches 'loaded'. */
+  const [inputsState, setInputsState] = useState<'loading' | 'error' | 'loaded'>('loading');
   const [connectionChoices, setConnectionChoices] = useState<Record<string, string>>({});
 
   const loadInputs = useCallback((serviceName: string, tag: string) => {
+    setInputsState('loading');
     serviceApi
       .getServiceInputs(serviceName, tag)
-      .then((inputs) => setPackageInputs(inputs.filter((input) => !!input.parameter)))
-      // A package without inputs (or an older server) simply offers nothing.
-      .catch(() => setPackageInputs([]));
+      .then((inputs) => {
+        setPackageInputs(inputs.filter((input) => !!input.parameter));
+        setInputsState('loaded');
+      })
+      .catch(() => {
+        setPackageInputs([]);
+        setInputsState('error');
+      });
   }, []);
 
   const profileEditor = hasProfileEditorWidget(serviceSchema);
@@ -119,12 +129,28 @@ export default function ServiceDeployPage() {
   const nameError = useMemo(() => k8sNameError(instanceName), [instanceName]);
 
   const isFormValid = useMemo(() => {
-    const baseValid = !!selectedTag && !nameError && !!instanceName;
+    // The last gate before Deploy, so it repeats the connection check rather
+    // than trusting that the wizard was walked step by step.
+    const baseValid =
+      !!selectedTag &&
+      !nameError &&
+      !!instanceName &&
+      inputsState === 'loaded' &&
+      packageInputs.every((input) => input.optional || !!connectionChoices[input.parameter!]);
     if (profileEditor) {
       return baseValid && profiles.length > 0;
     }
     return baseValid;
-  }, [selectedTag, nameError, instanceName, profileEditor, profiles]);
+  }, [
+    selectedTag,
+    nameError,
+    instanceName,
+    profileEditor,
+    profiles,
+    inputsState,
+    packageInputs,
+    connectionChoices,
+  ]);
 
   const canAdvance = (): boolean => {
     switch (currentStepKey) {
@@ -132,9 +158,11 @@ export default function ServiceDeployPage() {
         return !!instanceName && !nameError && !!selectedTag;
       case 'params':
         // A required connection input without a selection would fail at
-        // reconciliation; block it here instead.
+        // reconciliation; block it here instead. An unread list of inputs is
+        // not an empty one, so anything but 'loaded' blocks too.
         return (
           !schemaLoading &&
+          inputsState === 'loaded' &&
           paramsValid &&
           packageInputs.every((input) => input.optional || !!connectionChoices[input.parameter!])
         );
@@ -440,6 +468,30 @@ export default function ServiceDeployPage() {
                   </div>
                 ) : (
                   <div className="form-section">
+                    {/* Which connections this service needs is not known yet, or
+                        could not be read. Deploying anyway would leave the
+                        release waiting on a connection nobody was asked for. */}
+                    {inputsState === 'loading' && (
+                      <p className="muted-text small">Reading the connections this service needs…</p>
+                    )}
+                    {inputsState === 'error' && (
+                      <div className="form-field">
+                        <small className="field-hint err">
+                          Could not read the connections this service needs. Deploying now could
+                          leave it waiting for one.
+                        </small>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ alignSelf: 'flex-start', marginTop: '8px' }}
+                          onClick={() =>
+                            service && selectedTag && loadInputs(service.name, selectedTag)
+                          }
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
                     {packageInputs.map((input) => (
                       <ConnectionInputPicker
                         key={input.alias}

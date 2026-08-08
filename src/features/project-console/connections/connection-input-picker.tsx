@@ -25,6 +25,7 @@ import { testResultIcon } from './connection-status';
 const NONE = '__none__';
 
 interface PickerChoice {
+  status?: string;
   label: string;
   value: string;
   description?: string;
@@ -49,14 +50,27 @@ export function ConnectionInputPicker({
   onChange: (connectionName: string) => void;
 }) {
   const [selectable, setSelectable] = useState<SelectableConnection[]>([]);
-  const [connectionType, setConnectionType] = useState<ConnectionType | null>(null);
-  const [createVisible, setCreateVisible] = useState(false);
+  /** The type answering this contract, when a user may declare one by hand.
+   *  Null for an internal-only contract (trino, ...), where nothing is offered. */
+  const [creatableType, setCreatableType] = useState<ConnectionType | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  /** Loading and failure are not the same as "nothing matches": saying "no
+   *  compatible connection" while the request is in flight, or after it failed,
+   *  sends the user off to create a duplicate of what already exists. */
+  const [state, setState] = useState<'loading' | 'error' | 'loaded'>('loading');
 
   const reload = useCallback(() => {
+    setState('loading');
     connectionApi
       .selectable(projectId, input.interface)
-      .then(setSelectable)
-      .catch(() => setSelectable([]));
+      .then((found) => {
+        setSelectable(found);
+        setState('loaded');
+      })
+      .catch(() => {
+        setSelectable([]);
+        setState('error');
+      });
   }, [projectId, input.interface]);
 
   useEffect(() => {
@@ -64,9 +78,10 @@ export function ConnectionInputPicker({
     connectionApi
       .catalog()
       .then((catalog) => {
-        setConnectionType(catalog.types.find((t) => t.name === input.interface) ?? null);
+        const found = catalog.types.find((type) => type.name === input.interface);
+        setCreatableType(found && found.external ? found : null);
       })
-      .catch(() => setConnectionType(null));
+      .catch(() => setCreatableType(null));
   }, [reload, input.interface]);
 
   const options = useMemo<PickerChoice[]>(() => {
@@ -74,6 +89,9 @@ export function ConnectionInputPicker({
       label:
         connection.scope === 'platform' ? `${connection.name} (platform)` : connection.name,
       value: connection.name,
+      // The status belongs here: a candidate in ERROR is offered like any other,
+      // and picking it leaves the release waiting with nothing to explain why.
+      status: connection.status,
       description: connection.managed
         ? `Provided by ${connection.providedBy || 'a deployed service'}`
         : connection.description,
@@ -96,13 +114,13 @@ export function ConnectionInputPicker({
         </label>
         {/* Creating is only offered for contracts a user may declare by hand:
             an internal-only type (trino, ...) exists because a service does. */}
-        {connectionType?.external && (
+        {creatableType && (
           <Button
             type="button"
             label="New connection"
             icon="pi pi-plus"
             text
-            onClick={() => setCreateVisible(true)}
+            onClick={() => setCreateOpen(true)}
           />
         )}
       </div>
@@ -118,14 +136,26 @@ export function ConnectionInputPicker({
         optionLabel="label"
         optionValue="value"
         placeholder={
-          options.length === 0 ? 'No compatible connection available' : 'Select a connection'
+          state === 'loading'
+            ? 'Loading connections...'
+            : state === 'error'
+              ? 'Could not load connections'
+              : options.length === 0
+                ? 'No compatible connection available'
+                : 'Select a connection'
         }
+        disabled={state === 'loading'}
         appendTo={document.body}
         className="w-full"
         onChange={(e) => onChange(e.value === NONE ? '' : (e.value as string))}
         itemTemplate={(option: PickerChoice) => (
           <div>
-            <div>{option.label}</div>
+            <div>
+              {option.label}
+              {option.status && option.status !== 'READY' && (
+                <span className="muted-text small"> [{option.status}]</span>
+              )}
+            </div>
             {option.description && (
               <div className="muted-text small">{option.description}</div>
             )}
@@ -133,14 +163,14 @@ export function ConnectionInputPicker({
         )}
       />
 
-      {connectionType && (
+      {createOpen && creatableType && (
         <InlineConnectionCreate
           projectId={projectId}
-          connectionType={connectionType}
-          visible={createVisible}
-          onHide={() => setCreateVisible(false)}
+          connectionType={creatableType}
+          visible={createOpen}
+          onHide={() => setCreateOpen(false)}
           onCreated={(name) => {
-            setCreateVisible(false);
+            setCreateOpen(false);
             reload();
             onChange(name);
           }}
@@ -176,8 +206,8 @@ function InlineConnectionCreate({
 
   const schema = useMemo(() => toDynamicSchema(connectionType), [connectionType]);
   const nameError = name ? k8sNameError(name) : null;
-  const formValid =
-    !!name && !nameError && missingRequiredFields(connectionType, values).length === 0;
+  const missingFields = missingRequiredFields(connectionType, values);
+  const formValid = !!name && !nameError && missingFields.length === 0;
 
   const api = connectionApi.project(projectId);
 
@@ -259,6 +289,11 @@ function InlineConnectionCreate({
           {nameError && <small className="field-hint err">{nameError}</small>}
         </div>
         <DynamicSchemaForm schema={schema} onParametersChange={setValues} />
+        {/* Same reason as the Connections page: a disabled button that says
+            nothing leaves the user hunting for the empty field. */}
+        {missingFields.length > 0 && (
+          <small className="field-hint">Still to fill in: {missingFields.join(', ')}.</small>
+        )}
         {testResult && (
           <Message
             severity={testResult.success ? 'success' : 'error'}

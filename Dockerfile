@@ -33,6 +33,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 RUN sed -i 's/^\(\s*user\s\+.*\)$/# \1/' /etc/nginx/nginx.conf \
     && chown -R ${OKDP_UI_UID}:root /usr/share/nginx/html /var/cache/nginx /etc/nginx /run /var/run
 
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 EXPOSE 4200
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
@@ -40,5 +42,6 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 USER ${OKDP_UI_UID}
 
-# Run nginx in the foreground
+# The entrypoint writes /config.js from the environment, then hands over to nginx.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

@@ -27,7 +27,7 @@ const CATALOG: ConnectionCatalog = {
   crdAvailable: true,
   types: [
     {
-      name: 'postgresql',
+      name: 'database-server',
       displayName: 'PostgreSQL',
       description: 'PostgreSQL database server.',
       icon: 'pi pi-database',
@@ -54,7 +54,7 @@ const CATALOG: ConnectionCatalog = {
 
 const WAREHOUSE: Connection = {
   name: 'warehouse',
-  type: 'postgresql',
+  type: 'database-server',
   scope: 'project',
   namespace: 'demo',
   description: 'Corporate warehouse',
@@ -81,8 +81,8 @@ async function openFilledDialog(name = 'warehouse-2') {
 
   await waitFor(() => expect(screen.getByLabelText('Connection name')).toBeInTheDocument());
   fireEvent.change(screen.getByLabelText('Connection name'), { target: { value: name } });
-  fireEvent.change(screen.getByLabelText('Host'), { target: { value: 'db.example.com' } });
-  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 's3cret' } });
+  fireEvent.change(screen.getByLabelText(/^Host\b/), { target: { value: 'db.example.com' } });
+  fireEvent.change(screen.getByLabelText(/^Password\b/), { target: { value: 's3cret' } });
 }
 
 describe('ExternalConnectionList', () => {
@@ -168,11 +168,11 @@ describe('ExternalConnectionList', () => {
     await screen.findByText('warehouse');
     fireEvent.click(screen.getByRole('button', { name: /Add connection/ }));
 
-    await waitFor(() => expect(screen.getByLabelText('Host')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText(/^Host\b/)).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /Test connection/ })).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText('Host'), { target: { value: 'db.example.com' } });
-    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 's3cret' } });
+    fireEvent.change(screen.getByLabelText(/^Host\b/), { target: { value: 'db.example.com' } });
+    fireEvent.change(screen.getByLabelText(/^Password\b/), { target: { value: 's3cret' } });
 
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /Test connection/ })).toBeEnabled(),

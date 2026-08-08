@@ -179,6 +179,7 @@ export function InternalConnectionList() {
             typeDisplay: detail.typeDisplay || detail.type,
             icon: detail.icon,
             description: `Provided by ${detail.service || detail.releaseName} in this project.`,
+            status: detail.status,
             values: detail.values,
             usage: detail.usage,
           }

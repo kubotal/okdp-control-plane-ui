@@ -22,7 +22,7 @@ const CATALOG: ConnectionCatalog = {
   crdAvailable: true,
   types: [
     {
-      name: 'postgresql',
+      name: 'database-server',
       displayName: 'PostgreSQL',
       description: 'PostgreSQL database server.',
       icon: 'pi pi-database',
@@ -46,7 +46,7 @@ const SELECTABLE: SelectableConnection[] = [
   {
     name: 'rnacentral',
     scope: 'project',
-    type: 'postgresql',
+    type: 'database-server',
     status: 'READY',
     description: 'Public database',
     managed: false,
@@ -54,7 +54,7 @@ const SELECTABLE: SelectableConnection[] = [
   {
     name: 'shared-pg',
     scope: 'platform',
-    type: 'postgresql',
+    type: 'database-server',
     status: 'READY',
     managed: false,
   },
@@ -62,7 +62,7 @@ const SELECTABLE: SelectableConnection[] = [
 
 const INPUT: PackageInput = {
   alias: 'warehouse',
-  interface: 'postgresql',
+  interface: 'database-server',
   parameter: 'pgConnection',
   optional: true,
 };
@@ -85,7 +85,7 @@ describe('ConnectionInputPicker', () => {
 
   it('should offer the compatible connections, platform ones labelled', async () => {
     renderPicker();
-    await waitFor(() => expect(selectable).toHaveBeenCalledWith('demo', 'postgresql'));
+    await waitFor(() => expect(selectable).toHaveBeenCalledWith('demo', 'database-server'));
 
     fireEvent.click(screen.getByRole('button', { name: /Select a connection/ }));
 
@@ -145,14 +145,14 @@ describe('ConnectionInputPicker', () => {
     fireEvent.change(screen.getByLabelText('Connection name'), {
       target: { value: 'fresh-pg' },
     });
-    fireEvent.change(await screen.findByLabelText('Host'), {
+    fireEvent.change(await screen.findByLabelText(/^Host\b/), {
       target: { value: 'db.corp.example.com' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Create and select/ }));
 
     await waitFor(() =>
       expect(create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'fresh-pg', type: 'postgresql' }),
+        expect.objectContaining({ name: 'fresh-pg', type: 'database-server' }),
       ),
     );
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('fresh-pg'));

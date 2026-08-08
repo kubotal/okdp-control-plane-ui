@@ -427,6 +427,12 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
             />
           )}
 
+          {/* The Save button is disabled until the form is complete. Naming
+              what is missing beats leaving the user to hunt for it. */}
+          {selectedType && missingFields.length > 0 && (
+            <small className="field-hint">Still to fill in: {missingFields.join(', ')}.</small>
+          )}
+
           {testResult && (
             <Message
               severity={testResult.success ? 'success' : 'error'}
@@ -457,6 +463,8 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
               catalog?.types.find((t) => t.name === detail.type)?.displayName ?? detail.type,
             icon: catalog?.types.find((t) => t.name === detail.type)?.icon,
             description: detail.description,
+            status: detail.status,
+            message: detail.message,
             values: detail.values,
             usage: detail.usage,
             credentialsSecret: detail.credentialsSecret,

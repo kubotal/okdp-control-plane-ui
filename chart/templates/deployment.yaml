@@ -18,6 +18,13 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # Written to /config.js by the entrypoint and read by the bundle at
+          # startup: one image, any cluster, whose issuer it cannot know when built.
+          env:
+            - name: OIDC_AUTHORITY
+              value: {{ .Values.oidc.authority | quote }}
+            - name: OIDC_CLIENT_ID
+              value: {{ .Values.oidc.clientId | quote }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

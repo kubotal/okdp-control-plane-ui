@@ -1,5 +1,18 @@
 // Environment configuration. Vite statically replaces import.meta.env.PROD,
 // so the unused branch is dropped from production bundles.
+//
+// The OIDC settings are read at STARTUP, not baked into the bundle: the same
+// image must run against any cluster, whose issuer is not known when the
+// bundle is built. The container entrypoint writes /config.js, which index.html
+// loads before the bundle. The values below are the fallback for `npm run dev`.
+
+declare global {
+  interface Window {
+    __OKDP_CONFIG__?: Partial<Pick<OidcConfig, 'authority' | 'clientId'>>;
+  }
+}
+
+const runtime = (typeof window !== 'undefined' && window.__OKDP_CONFIG__) || {};
 
 interface OidcConfig {
   authority: string;
@@ -26,8 +39,8 @@ const development: Environment = {
   apiBaseUrl: 'http://localhost:8093',
 
   oidc: {
-    authority: 'https://kubauth.okdp.dev-sandbox',
-    clientId: 'okdp-app',
+    authority: runtime.authority || 'https://kubauth.okdp.dev-sandbox',
+    clientId: runtime.clientId || 'okdp-app',
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
     scope: 'openid profile email groups offline_access',

@@ -12,6 +12,12 @@ backend:
   service: okdp-server
   port: 8093
 
+# OIDC provider the console redirects to. Injected at container startup, not
+# baked into the bundle, so one image serves any cluster.
+oidc:
+  authority: ""
+  clientId: okdp-ui
+
 service:
   type: ClusterIP
   port: 4200

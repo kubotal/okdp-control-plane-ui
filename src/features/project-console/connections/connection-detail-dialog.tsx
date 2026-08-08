@@ -6,12 +6,18 @@ import type {
   CredentialsSecretRef,
 } from '../../../core/api/connection-api';
 import { envBlock } from './connection-usage-format';
+import { connectionStatusTone } from './connection-status';
+import { StatusTag } from '../../../shared/components/status-tag';
 
 export interface ConnectionDetail {
   name: string;
   typeDisplay: string;
   icon?: string;
   description?: string;
+  status?: string;
+  /** Why the connection is not usable. In the list it only exists as a native
+   *  tooltip, which cannot be selected, copied, or reached with a keyboard. */
+  message?: string;
   values: ConnectionValues;
   usage?: ConnectionUsage;
   credentialsSecret?: CredentialsSecretRef;
@@ -107,6 +113,23 @@ export function ConnectionDetailDialog({
     >
       {detail.description && (
         <p className="mb-5 text-[13px] text-fg-secondary">{detail.description}</p>
+      )}
+
+      {/* A connection that is not ready is the case a user opens this panel
+          for. The reason belongs here, in full and copiable, rather than in a
+          tooltip that truncates and disappears. */}
+      {detail.status && detail.status !== 'Ready' && detail.status !== 'READY' && (
+        <Section title="Status">
+          <div className="rounded-xs border border-border-light bg-surface-secondary p-2 text-[13px]">
+            <StatusTag value={detail.status} tone={connectionStatusTone(detail.status)} />
+            {detail.message && (
+              <div className="mt-2 flex items-start gap-2">
+                <span className="flex-1 break-words">{detail.message}</span>
+                <CopyButton text={detail.message} label="the status message" onCopied={onCopied} />
+              </div>
+            )}
+          </div>
+        </Section>
       )}
 
       {entries.length > 0 && (

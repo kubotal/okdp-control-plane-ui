@@ -13,6 +13,12 @@ export function toDynamicSchema(type: ConnectionType, editMode = false): any {
   const properties: Record<string, any> = {};
 
   type.fields.forEach((field, index) => {
+    // A derived field is not asked for: the server recomputes it from its
+    // source on save, and a form letting the two disagree only produces
+    // connections nothing can open.
+    if (field.derived) {
+      return;
+    }
     properties[field.name] = {
       // The form has no notion of enum as a type: it is a string constrained
       // by `enum`, which resolveWidget turns into a select.
@@ -24,16 +30,20 @@ export function toDynamicSchema(type: ConnectionType, editMode = false): any {
       minimum: field.min,
       maximum: field.max,
       'x-ui-order': index,
-      'x-ui-widget': field.secret ? 'password' : undefined,
+      // Masked, not secret: what goes to the Secret and what is hidden while
+      // typing are two decisions, and a user name is only the first.
+      'x-ui-widget': field.masked ? 'password' : undefined,
       'x-ui-placeholder': field.placeholder,
+      'x-ui-condition': field.showWhen,
     };
   });
 
   return {
     properties,
-    // A credential already stored is not demanded again on an edit.
+    // A credential already stored is not demanded again on an edit, and a
+    // derived field is never typed in at all.
     required: type.fields
-      .filter((field) => field.required && !(editMode && field.secret))
+      .filter((field) => field.required && !field.derived && !(editMode && field.secret))
       .map((field) => field.name),
   };
 }
@@ -53,7 +63,10 @@ export function missingRequiredFields(
   editMode = false,
 ): string[] {
   return type.fields
-    .filter((field) => field.required && !(editMode && field.secret))
+    .filter((field) => field.required && !field.derived && !(editMode && field.secret))
+    // A field the chosen engine rules out is not on screen, so demanding it
+    // would grey out Save with nothing to click on.
+    .filter((field) => !field.showWhen || values[field.showWhen.field] === field.showWhen.value)
     .filter((field) => {
       const value = values[field.name];
       return value === undefined || value === null || value === '';

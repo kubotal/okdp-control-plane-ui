@@ -3,7 +3,7 @@ import type { ConnectionType } from '../../../core/api/connection-api';
 import { missingRequiredFields, omitBlankSecrets, toDynamicSchema } from './connection-schema';
 
 const POSTGRES: ConnectionType = {
-  name: 'postgresql',
+  name: 'database-server',
   displayName: 'PostgreSQL',
   description: 'PostgreSQL database server.',
   icon: 'pi pi-database',
@@ -12,7 +12,8 @@ const POSTGRES: ConnectionType = {
   fields: [
     { name: 'host', label: 'Host', type: 'string', required: true, placeholder: 'db.example.com' },
     { name: 'port', label: 'Port', type: 'number', required: true, default: 5432, min: 1, max: 65535 },
-    { name: 'password', label: 'Password', type: 'string', required: true, secret: true },
+    { name: 'username', label: 'User', type: 'string', required: true, secret: true },
+    { name: 'password', label: 'Password', type: 'string', required: true, secret: true, masked: true },
     {
       name: 'sslMode',
       label: 'SSL mode',
@@ -20,6 +21,21 @@ const POSTGRES: ConnectionType = {
       required: true,
       default: 'require',
       options: ['disable', 'require'],
+    },
+    {
+      name: 'driver',
+      label: 'JDBC driver',
+      type: 'string',
+      required: true,
+      derived: { from: 'engine', map: { postgresql: 'org.postgresql.Driver' } },
+    },
+    {
+      name: 'tls',
+      label: 'TLS mode',
+      type: 'enum',
+      required: true,
+      options: ['preferred', 'true'],
+      showWhen: { field: 'engine', value: 'mysql' },
     },
   ],
 };
@@ -43,11 +59,29 @@ describe('toDynamicSchema', () => {
     expect(schema.properties.sslMode.enum).toEqual(['disable', 'require']);
   });
 
-  it('marks credentials with the password widget so they are never shown in clear', () => {
+  it('masks a password, and only what is declared masked', () => {
     const schema = toDynamicSchema(POSTGRES);
 
     expect(schema.properties.password['x-ui-widget']).toBe('password');
     expect(schema.properties.host['x-ui-widget']).toBeUndefined();
+    // Stored in the Secret, but hiding it would only stop the user from
+    // checking what they typed.
+    expect(schema.properties.username['x-ui-widget']).toBeUndefined();
+  });
+
+  it('leaves a derived field out of the form, and out of what it demands', () => {
+    const schema = toDynamicSchema(POSTGRES);
+
+    // The server recomputes it from the engine on save; a form letting the two
+    // disagree only produces connections nothing can open.
+    expect(schema.properties.driver).toBeUndefined();
+    expect(schema.required).not.toContain('driver');
+  });
+
+  it('carries a conditional field through as a form condition', () => {
+    const schema = toDynamicSchema(POSTGRES);
+
+    expect(schema.properties.tls['x-ui-condition']).toEqual({ field: 'engine', value: 'mysql' });
   });
 
   it('preserves the declared field order', () => {
@@ -57,13 +91,22 @@ describe('toDynamicSchema', () => {
   });
 
   it('requires every required field when creating', () => {
-    expect(toDynamicSchema(POSTGRES).required).toEqual(['host', 'port', 'password', 'sslMode']);
+    // tls stays in the list: it is required when it applies, and the form
+    // decides whether it applies from its condition.
+    expect(toDynamicSchema(POSTGRES).required).toEqual([
+      'host',
+      'port',
+      'username',
+      'password',
+      'sslMode',
+      'tls',
+    ]);
   });
 
   it('stops requiring a credential when editing, since it is already stored', () => {
     const schema = toDynamicSchema(POSTGRES, true);
 
-    expect(schema.required).toEqual(['host', 'port', 'sslMode']);
+    expect(schema.required).toEqual(['host', 'port', 'sslMode', 'tls']);
     expect(schema.properties.password.description).toContain('Leave blank to keep');
   });
 });
@@ -72,13 +115,29 @@ describe('missingRequiredFields', () => {
   it('reports the labels of the fields left empty', () => {
     const missing = missingRequiredFields(POSTGRES, { port: 5432, sslMode: 'require' });
 
-    expect(missing).toEqual(['Host', 'Password']);
+    expect(missing).toEqual(['Host', 'User', 'Password']);
   });
 
   it('accepts a fully filled form', () => {
     const missing = missingRequiredFields(POSTGRES, {
       host: 'db.example.com',
       port: 5432,
+      username: 'reader',
+      password: 's3cret',
+      sslMode: 'require',
+    });
+
+    expect(missing).toEqual([]);
+  });
+
+  it('does not demand a field the chosen engine rules out', () => {
+    // tls only applies to MySQL, so on a PostgreSQL form it is not on screen —
+    // demanding it would grey out Save with nothing to click on.
+    const missing = missingRequiredFields(POSTGRES, {
+      engine: 'postgresql',
+      host: 'db.example.com',
+      port: 5432,
+      username: 'reader',
       password: 's3cret',
       sslMode: 'require',
     });

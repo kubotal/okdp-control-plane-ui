@@ -13,17 +13,31 @@ export interface ConnectionField {
   label: string;
   type: ConnectionFieldType;
   required: boolean;
-  /** Credentials: masked in the form, never returned by the API afterwards. */
+  /** The value is stored in the credentials Secret, and never returned by the
+   *  API afterwards. This is about storage, not about how it is typed in. */
   secret?: boolean;
+  /** The value is hidden as it is typed. A database user name is stored in the
+   *  Secret without being worth hiding, so the two are separate. */
+  masked?: boolean;
   default?: string | number | boolean;
   options?: string[];
   placeholder?: string;
   help?: string;
   min?: number;
   max?: number;
+  /** The field only applies when another one holds this value. A PostgreSQL
+   *  TLS mode has no meaning on a MySQL server, and offering both at once is
+   *  how a connection ends up carrying the wrong one. */
+  showWhen?: { field: string; value: string };
+  /** The value follows from another field, so the form does not ask for it.
+   *  The server recomputes it on save either way. */
+  derived?: { from: string; map: Record<string, string> };
 }
 
 export interface ConnectionType {
+  /** Also the KuboCD Interface this type produces: one type, one contract. A
+   *  package asking for `database-server` is answered by the type of the same
+   *  name, whose engine field says whether it is PostgreSQL or MySQL. */
   name: string;
   displayName: string;
   description: string;
