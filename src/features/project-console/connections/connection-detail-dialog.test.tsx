@@ -60,12 +60,14 @@ describe('ConnectionDetailDialog', () => {
     expect(screen.queryByText('secretRef')).not.toBeInTheDocument();
     // The Credentials section still names the secret.
     expect(screen.getByText('analytics/crm-postgres-credentials')).toBeInTheDocument();
+    expect(screen.getByText('Keys')).toBeInTheDocument();
   });
 
   it('should name the secret holding the credentials, and its keys', () => {
     renderDialog(postgres);
 
     expect(screen.getByText('analytics/crm-postgres-credentials')).toBeInTheDocument();
+    expect(screen.getByText('Keys')).toBeInTheDocument();
     expect(screen.getByText('password')).toBeInTheDocument();
   });
 
@@ -105,7 +107,7 @@ describe('ConnectionDetailDialog', () => {
   it('says a secret written by the console goes with the connection', () => {
     renderDialog(postgres);
 
-    expect(screen.getByText(/Deleting this connection deletes it too/)).toBeInTheDocument();
+    expect(screen.getByText(/deleted with this connection/)).toBeInTheDocument();
   });
 
   it('says a secret from elsewhere stays behind', () => {
@@ -114,6 +116,6 @@ describe('ConnectionDetailDialog', () => {
       credentialsSecret: { ...postgres.credentialsSecret!, name: 'from-vault', owned: false },
     });
 
-    expect(screen.getByText(/Comes from outside the console/)).toBeInTheDocument();
+    expect(screen.getByText(/stays when this connection goes/)).toBeInTheDocument();
   });
 });

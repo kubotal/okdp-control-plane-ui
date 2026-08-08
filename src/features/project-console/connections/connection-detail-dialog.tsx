@@ -31,7 +31,7 @@ function CopyButton({
       icon="pi pi-copy"
       text
       rounded
-      className="shrink-0"
+      className="!h-6 !w-6 shrink-0 !p-0"
       title={`Copy ${label}`}
       aria-label={`Copy ${label}`}
       onClick={() => {
@@ -137,36 +137,49 @@ export function ConnectionDetailDialog({
 
       {detail.credentialsSecret && (
         <Section title="Credentials">
-          <div className="rounded-xs border border-border-light bg-surface-secondary p-2 text-[13px]">
-            <div className="flex items-start gap-2">
-              <span className="mono flex-1 break-all">
-                {detail.credentialsSecret.namespace
-                  ? `${detail.credentialsSecret.namespace}/${detail.credentialsSecret.name}`
-                  : detail.credentialsSecret.name}
+          <div className="rounded-xs border border-border-light bg-surface-secondary px-3 py-2.5 text-[13px]">
+            {/* Same two-column grammar as Details above, so the panel reads as
+                one thing rather than two. */}
+            <dl className="grid grid-cols-[minmax(7rem,auto)_1fr] items-center gap-x-4 gap-y-1.5">
+              <dt className="text-fg-secondary">Secret</dt>
+              {/* The button belongs to the name it copies, so it follows it
+                  instead of being pushed to the far edge of the row. */}
+              <dd className="flex items-center gap-1">
+                <span className="mono min-w-0 break-all">
+                  {detail.credentialsSecret.namespace
+                    ? `${detail.credentialsSecret.namespace}/${detail.credentialsSecret.name}`
+                    : detail.credentialsSecret.name}
+                </span>
+                <CopyButton
+                  text={detail.credentialsSecret.name}
+                  label="the secret name"
+                  onCopied={onCopied}
+                />
+              </dd>
+
+              {detail.credentialsSecret.keys?.length ? (
+                <>
+                  <dt className="text-fg-secondary">Keys</dt>
+                  <dd className="mono break-all">{detail.credentialsSecret.keys.join(', ')}</dd>
+                </>
+              ) : null}
+            </dl>
+
+            {/* What happens to the Secret is a consequence, not another field:
+                it reads as a note under the grid, not as a third row. */}
+            <p className="mt-2.5 flex items-start gap-2 border-t border-border-light pt-2.5 text-[12px] text-fg-secondary">
+              <i className="pi pi-info-circle mt-0.5 text-[12px]" aria-hidden="true" />
+              <span>
+                {detail.credentialsSecret.owned
+                  ? 'Written by the console, and deleted with this connection.'
+                  : 'Comes from outside the console, and stays when this connection goes.'}{' '}
+                Their values are never read here.
               </span>
-              <CopyButton
-                text={detail.credentialsSecret.name}
-                label="the secret name"
-                onCopied={onCopied}
-              />
-            </div>
-            {detail.credentialsSecret.keys?.length ? (
-              <p className="mt-1 text-[12px] text-fg-secondary">
-                Keys: <span className="mono">{detail.credentialsSecret.keys.join(', ')}</span>. The
-                console never reads their values.
-              </p>
-            ) : null}
-            {/* The two cases behave differently, and the name alone does not
-                tell them apart: deleting the connection removes a secret the
-                console wrote, and leaves an external one where it is. */}
-            <p className="mt-1 text-[12px] text-fg-secondary">
-              {detail.credentialsSecret.owned
-                ? 'Written by the console. Deleting this connection deletes it too.'
-                : 'Comes from outside the console, so it stays when this connection goes.'}
             </p>
           </div>
         </Section>
       )}
+
     </Dialog>
   );
 }
