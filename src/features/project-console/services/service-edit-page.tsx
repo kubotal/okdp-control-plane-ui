@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
-import { serviceApi } from '../../../core/api/service-api';
+import { serviceApi, type PackageInput } from '../../../core/api/service-api';
+import { ConnectionInputPicker } from '../connections/connection-input-picker';
 import type { ServiceInstance } from '../../../core/models/service.model';
 import { DynamicSchemaForm } from '../../../shared/components/dynamic-schema-form';
 import EmptyState from '../../../shared/components/empty-state';
@@ -47,6 +48,11 @@ export default function ServiceEditPage() {
     Record<string, { label: string; image: string }[]>
   >({});
   const [parameterValues, setParameterValues] = useState<Record<string, any>>({});
+  // Connections the package declares. Editing used to render them as raw text
+  // fields, so changing a database meant typing a connection name from memory,
+  // with nothing checking it exists or satisfies the contract.
+  const [packageInputs, setPackageInputs] = useState<PackageInput[]>([]);
+  const [connectionChoices, setConnectionChoices] = useState<Record<string, string>>({});
   const [existingProfiles, setExistingProfiles] = useState<Profile[]>([]);
   const [versionOptions, setVersionOptions] = useState<{ label: string; value: string }[]>([]);
   const [selectedTag, setSelectedTag] = useState('');
@@ -56,6 +62,21 @@ export default function ServiceEditPage() {
   const profilesRef = useRef<Profile[]>([]);
 
   const hasPendingChanges = selectedTag !== originalTagRef.current;
+
+  // The parameters a connection input owns get a picker; leaving them in the
+  // schema form would render the same choice twice, once as a raw string.
+  const visibleSchema = useMemo(() => {
+    if (!rawSchema?.properties || packageInputs.length === 0) {
+      return rawSchema;
+    }
+    const claimed = new Set(packageInputs.map((input) => input.parameter));
+    return {
+      ...rawSchema,
+      properties: Object.fromEntries(
+        Object.entries(rawSchema.properties).filter(([key]) => !claimed.has(key)),
+      ),
+    };
+  }, [rawSchema, packageInputs]);
 
   useEffect(() => {
     if (!projectName || !serviceName) {
@@ -85,6 +106,22 @@ export default function ServiceEditPage() {
         const { profiles, ...params } = inst.parameters || {};
         setParameterValues(params);
         parametersRef.current = { ...params };
+
+        serviceApi
+          .getServiceInputs(inst.service, inst.serviceTag)
+          .then((inputs) => {
+            if (cancelled) return;
+            const offered = inputs.filter((input) => !!input.parameter);
+            setPackageInputs(offered);
+            setConnectionChoices(
+              Object.fromEntries(
+                offered.map((input) => [input.parameter!, String(params[input.parameter!] ?? '')]),
+              ),
+            );
+          })
+          // A package without inputs, or an older server: nothing to offer, and
+          // the parameters stay as they are.
+          .catch(() => setPackageInputs([]));
 
         if (Array.isArray(profiles) && profiles.length > 0) {
           setExistingProfiles(profiles);
@@ -134,6 +171,17 @@ export default function ServiceEditPage() {
     // (e.g. JupyterHub). Other services (Trino, Polaris, Superset, Airflow)
     // have `additionalProperties: false` and reject unknown keys.
     const mergedParams: Record<string, any> = { ...parametersRef.current };
+    // The pickers own their parameters, and the schema form no longer sees
+    // them. An empty choice is left out rather than written blank, so a package
+    // default resolved against the Environment keeps applying.
+    for (const input of packageInputs) {
+      const chosen = connectionChoices[input.parameter!];
+      if (chosen) {
+        mergedParams[input.parameter!] = chosen;
+      } else {
+        delete mergedParams[input.parameter!];
+      }
+    }
     if (hasProfileEditorWidget(rawSchema)) {
       mergedParams['profiles'] = profilesRef.current;
     }
@@ -275,8 +323,22 @@ export default function ServiceEditPage() {
                 </div>
               ) : rawSchema ? (
                 <div className="form-section">
+                  {packageInputs.map((input) => (
+                    <ConnectionInputPicker
+                      key={input.alias}
+                      projectId={projectName!}
+                      input={input}
+                      value={connectionChoices[input.parameter!] ?? ''}
+                      onChange={(connectionName) =>
+                        setConnectionChoices((choices) => ({
+                          ...choices,
+                          [input.parameter!]: connectionName,
+                        }))
+                      }
+                    />
+                  ))}
                   <DynamicSchemaForm
-                    schema={rawSchema}
+                    schema={visibleSchema}
                     initialValues={parameterValues}
                     onParametersChange={(params) => {
                       parametersRef.current = params;

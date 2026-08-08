@@ -13,6 +13,7 @@ import {
   connectionApi,
   type Connection,
   type ConnectionCatalog,
+  type ConnectionConsumer,
   type ConnectionRequest,
   type ConnectionScope,
   type ConnectionTestResult,
@@ -20,7 +21,7 @@ import {
   type ConnectionValues,
 } from '../../../core/api/connection-api';
 import { apiErrorMessage, formatMediumDateTime } from '../services/service-utils';
-import { connectionStatusTone, testResultIcon } from './connection-status';
+import { connectionStatusTone } from './connection-status';
 import { missingRequiredFields, omitBlankSecrets, toDynamicSchema } from './connection-schema';
 import { StatusTag } from '../../../shared/components/status-tag';
 import { DynamicSchemaForm } from '../../../shared/components/dynamic-schema-form';
@@ -29,6 +30,7 @@ import SearchFilter from '../../../shared/components/search-filter';
 import { PageHeader } from '../../../shared/components/page-header';
 import { ConnectionDetailDialog } from './connection-detail-dialog';
 import { CredentialsBlock, type CredentialsMode } from './credentials-block';
+import { ConnectionTestReport } from './connection-test-result';
 import { useToastMessages } from '../../../shared/hooks/use-toast-messages';
 import { useRowActionsMenu } from '../../../shared/hooks/use-row-actions-menu';
 import { k8sNameError } from '../../../shared/utils/k8s-names';
@@ -62,6 +64,9 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
   const [catalog, setCatalog] = useState<ConnectionCatalog | null>(null);
   const [globalFilter, setGlobalFilter] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Connection | null>(null);
+  // Who consumes the connection about to be deleted. Loaded when the dialog
+  // opens: the answer only exists on the cluster, and it changes.
+  const [consumers, setConsumers] = useState<ConnectionConsumer[] | null>(null);
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -231,10 +236,26 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
       .catch((err) => showError(apiErrorMessage(err, 'Failed to delete connection')));
   };
 
+  const askDelete = (connection: Connection) => {
+    setDeleteTarget(connection);
+    setConsumers(null);
+    // A platform connection is consumed from any project, so the question has
+    // no single answer there; only a project connection is asked about.
+    if (scope === 'platform') {
+      setConsumers([]);
+      return;
+    }
+    connectionApi
+      .consumers(projectId, connection.name)
+      .then(setConsumers)
+      // Not knowing is not the same as nobody: the dialog says so.
+      .catch(() => setConsumers(null));
+  };
+
   const { menuElement, openMenu } = useRowActionsMenu<Connection>([
     { label: 'Details', icon: 'pi pi-info-circle', command: setDetail },
     { label: 'Edit', icon: 'pi pi-pencil', command: openEditDialog },
-    { label: 'Delete', icon: 'pi pi-trash', command: setDeleteTarget },
+    { label: 'Delete', icon: 'pi pi-trash', command: askDelete },
   ]);
 
   const onCopied = (what: string) =>
@@ -479,21 +500,40 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
             </small>
           )}
 
-          {testResult && (
-            <Message
-              severity={testResult.success ? 'success' : 'error'}
-              className="mt-2 w-full justify-start"
-              icon={testResultIcon(testResult)}
-              text={`${testResult.message} (${testResult.durationMs} ms)`}
-            />
-          )}
+          {testResult && <ConnectionTestReport result={testResult} />}
         </div>
       </Dialog>
 
       <DeleteConfirmDialog
         resourceName={deleteTarget?.name ?? null}
         resourceKind="connection"
-        message="Services configured to use this connection will no longer resolve it."
+        message={
+          <>
+            {/* The credentials Secret goes with the connection, so the pods
+                mounting it fail at their next restart, not right away. Saying
+                which services those are is the whole point of this dialog. */}
+            {consumers === null ? (
+              <span>
+                Could not check which services use this connection. Deleting it removes its
+                credentials secret, and any service mounting that secret will fail to restart.
+              </span>
+            ) : consumers.length === 0 ? (
+              <span>
+                No service of this project is bound to it. Deleting it also removes its
+                credentials secret.
+              </span>
+            ) : (
+              <>
+                <span>
+                  {consumers.length === 1 ? 'This service uses it' : 'These services use it'}:{' '}
+                  <strong>{consumers.map((c) => c.service).join(', ')}</strong>. Deleting the
+                  connection removes its credentials secret too, so they will fail to start at
+                  their next restart.
+                </span>
+              </>
+            )}
+          </>
+        }
         onHide={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) deleteConnection(deleteTarget);

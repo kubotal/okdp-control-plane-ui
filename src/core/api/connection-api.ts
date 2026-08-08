@@ -134,6 +134,15 @@ export interface SelectableConnection {
   providedBy?: string;
 }
 
+/** A service bound to a connection, as the release controller published it. */
+export interface ConnectionConsumer {
+  service: string;
+  releaseName: string;
+  status: string;
+  /** False while the service is only waiting for the connection. */
+  effective: boolean;
+}
+
 export type ConnectionTestReason =
   | 'unreachable'
   | 'auth-failed'
@@ -147,6 +156,20 @@ export interface ConnectionTestResult {
   message: string;
   reason?: ConnectionTestReason;
   durationMs: number;
+  /** One entry per address probed. A contract may publish several, and a store
+   *  reachable from outside the cluster but not from inside it is a real case
+   *  that a single verdict used to hide. */
+  checks?: ConnectionTestCheck[];
+}
+
+export interface ConnectionTestCheck {
+  label: string;
+  target: string;
+  /** The path a workload will actually take, the one `success` reflects. */
+  decisive: boolean;
+  success: boolean;
+  message: string;
+  reason?: ConnectionTestReason;
 }
 
 export interface ConnectionTestRequest {
@@ -211,6 +234,13 @@ export const connectionApi = {
   selectable(projectId: string, iface: string): Promise<SelectableConnection[]> {
     return http.getList<SelectableConnection>(
       `${projectUrl(projectId)}/selectable?interface=${seg(iface)}`,
+    );
+  },
+
+  /** Services bound to a connection, to show before a destructive edit. */
+  consumers(projectId: string, connectionName: string): Promise<ConnectionConsumer[]> {
+    return http.getList<ConnectionConsumer>(
+      `${projectUrl(projectId)}/${seg(connectionName)}/consumers`,
     );
   },
 };

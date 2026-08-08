@@ -442,6 +442,39 @@ export default function ServiceDetailPage() {
                   </div>
                 </div>
 
+                {/* What the service actually runs against. The page showed the
+                    parameters it was deployed with, never the connections the
+                    controller resolved, so "which database is my Superset on"
+                    had no answer here. An unresolved one is the case a reader
+                    opens this page for, so it is listed too. */}
+                {instance.connections && instance.connections.length > 0 && (
+                  <div className="section-card">
+                    <div className="section-header">
+                      <div className="section-icon-badge">
+                        <i className="pi pi-link"></i>
+                      </div>
+                      <h3 className="section-title">Connections</h3>
+                    </div>
+                    <ul className="reset-list">
+                      {instance.connections.map((connection) => (
+                        <li
+                          key={`${connection.kind}/${connection.namespace ?? ''}/${connection.name}`}
+                          className="flex items-center gap-2 py-1.5 text-[13px]"
+                        >
+                          <span className="mono flex-1 break-all">{connection.name}</span>
+                          {connection.kind === 'ClusterConnection' && (
+                            <span className="muted-text small">platform</span>
+                          )}
+                          <StatusTag
+                            value={connection.resolved ? 'Resolved' : 'Waiting'}
+                            tone={connection.resolved ? 'success' : 'warning'}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="section-card">
                   <div className="section-header">
                     <div className="section-icon-badge">

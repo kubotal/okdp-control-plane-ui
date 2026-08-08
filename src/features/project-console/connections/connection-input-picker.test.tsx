@@ -157,4 +157,49 @@ describe('ConnectionInputPicker', () => {
     );
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('fresh-pg'));
   });
+
+  // A package parameter carries a bare name, so two connections of the same
+  // name at different scopes send the same value: the choice cannot be
+  // expressed, and the release ends in WAIT_INPUT_CONNECTIONS with "Too many
+  // possible connections". Offering them as if they were distinguishable is
+  // the misleading part.
+  it('refuses a name held at both scopes rather than sending an ambiguous value', async () => {
+    selectable.mockResolvedValue([
+      { name: 'postgres', scope: 'project', type: 'database-server', status: 'READY', managed: false },
+      { name: 'postgres', scope: 'platform', type: 'database-server', status: 'READY', managed: false },
+    ]);
+
+    renderPicker();
+    await waitFor(() => expect(selectable).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('combobox'));
+
+    // One warning per row, and neither row is selectable.
+    const warnings = await screen.findAllByText(/A project and a platform connection share this name/);
+    expect(warnings).toHaveLength(2);
+    for (const warning of warnings) {
+      expect(warning.closest('[data-p-disabled="true"]')).not.toBeNull();
+    }
+  });
+
+  // KuboCD forbids a literal default on a connectionRef: it is always a
+  // template rendered against the Context, which is how an Environment says
+  // "here, the database is that one". Showing None for it, and writing an empty
+  // parameter, destroyed the inheritance in silence.
+  it('says a binding is inherited rather than calling it None', async () => {
+    renderPicker({
+      alias: 'db',
+      interface: 'database-server',
+      parameter: 'db',
+      optional: false,
+      default: '{{ .Context.defaultDatabase }}',
+    });
+
+    await waitFor(() => expect(selectable).toHaveBeenCalled());
+
+    expect(screen.getByText(/The Environment provides one by default/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('combobox'));
+    // Once as the selected value, once as the open option.
+    expect(await screen.findAllByText('Inherited from the Environment')).not.toHaveLength(0);
+    expect(screen.queryByText('None')).not.toBeInTheDocument();
+  });
 });

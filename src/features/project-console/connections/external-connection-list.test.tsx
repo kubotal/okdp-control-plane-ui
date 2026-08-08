@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { Connection, ConnectionCatalog } from '../../../core/api/connection-api';
 
 const catalog = vi.fn();
+const consumers = vi.fn();
 const list = vi.fn();
 const create = vi.fn();
 const test = vi.fn();
@@ -12,6 +13,7 @@ const remove = vi.fn();
 vi.mock('../../../core/api/connection-api', () => ({
   connectionApi: {
     catalog: () => catalog(),
+    consumers: (projectId: string, name: string) => consumers(projectId, name),
     project: () => ({ list, create, test, delete: remove, update: vi.fn() }),
     platform: () => ({ list, create, test, delete: remove, update: vi.fn() }),
   },
@@ -92,6 +94,7 @@ describe('ExternalConnectionList', () => {
     list.mockResolvedValue([WAREHOUSE]);
     create.mockResolvedValue(WAREHOUSE);
     remove.mockResolvedValue(undefined);
+    consumers.mockResolvedValue([]);
   });
 
   it('lists the declared connections with their type', async () => {
@@ -185,5 +188,44 @@ describe('ExternalConnectionList', () => {
     renderList();
 
     expect(await screen.findByText(/No external connection yet/)).toBeInTheDocument();
+  });
+
+  // Deleting a connection takes its credentials Secret with it, and the pods
+  // mounting that Secret fail at their next restart, far from this dialog. The
+  // controller publishes who consumes what, so the dialog can name them.
+  it('names the services bound to a connection before deleting it', async () => {
+    consumers.mockResolvedValue([
+      { service: 'hms', releaseName: 'demo-hms', status: 'READY', effective: true },
+      { service: 'superset', releaseName: 'demo-superset', status: 'WAIT_ICNX', effective: false },
+    ]);
+
+    renderList();
+    await screen.findByText('warehouse');
+    fireEvent.click(screen.getByLabelText('Actions for warehouse'));
+    fireEvent.click(await screen.findByText('Delete'));
+
+    expect(await screen.findByText(/hms, superset/)).toBeInTheDocument();
+    expect(screen.getByText(/fail to start at their next restart/)).toBeInTheDocument();
+  });
+
+  it('says so plainly when nothing is bound to it', async () => {
+    renderList();
+    await screen.findByText('warehouse');
+    fireEvent.click(screen.getByLabelText('Actions for warehouse'));
+    fireEvent.click(await screen.findByText('Delete'));
+
+    expect(await screen.findByText(/No service of this project is bound to it/)).toBeInTheDocument();
+  });
+
+  // Not knowing is not the same as nobody, and the dialog must not imply it.
+  it('does not claim the connection is unused when the check failed', async () => {
+    consumers.mockRejectedValue(new Error('boom'));
+
+    renderList();
+    await screen.findByText('warehouse');
+    fireEvent.click(screen.getByLabelText('Actions for warehouse'));
+    fireEvent.click(await screen.findByText('Delete'));
+
+    expect(await screen.findByText(/Could not check which services use/)).toBeInTheDocument();
   });
 });

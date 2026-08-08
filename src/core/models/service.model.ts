@@ -54,7 +54,20 @@ export interface ServiceInstance {
   targetNamespace: string;
   url?: string;
   parameters: Record<string, unknown>;
+  /** What the release is actually wired to, published by the controller. The
+   *  console used to show only what a service asked for, never what it got. */
+  connections?: ServiceConnection[];
   createdAt?: string;
+}
+
+/** One connection a deployed service is bound to. */
+export interface ServiceConnection {
+  name: string;
+  namespace?: string;
+  /** Connection or ClusterConnection: the two may share a name. */
+  kind: string;
+  /** False while the release is still waiting for it. */
+  resolved: boolean;
 }
 
 export type ServiceEvent = ListEvent<ServiceInstance>;

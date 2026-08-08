@@ -16,8 +16,8 @@ import { DynamicSchemaForm } from '../../../shared/components/dynamic-schema-for
 import { DialogFooter } from '../../../shared/components/dialog-footer';
 import { k8sNameError } from '../../../shared/utils/k8s-names';
 import { missingRequiredFields, omitBlankSecrets, toDynamicSchema } from './connection-schema';
-import { testResultIcon } from './connection-status';
 import { CredentialsBlock, type CredentialsMode } from './credentials-block';
+import { ConnectionTestReport } from './connection-test-result';
 
 /** Internal sentinel for "no connection" — PrimeReact's Dropdown mishandles an
  *  option whose value is the empty string, so the option carries this value and
@@ -30,6 +30,8 @@ interface PickerChoice {
   label: string;
   value: string;
   description?: string;
+  /** Set when the name exists at both scopes: the value cannot say which. */
+  disabled?: boolean;
 }
 
 /**
@@ -86,6 +88,18 @@ export function ConnectionInputPicker({
   }, [reload, input.interface]);
 
   const options = useMemo<PickerChoice[]>(() => {
+    // A package parameter carries a bare name, and the resolver looks for it in
+    // the project and at platform scope. When both hold that name, the two rows
+    // send the same value, so the choice cannot be expressed: the release ends
+    // in WAIT_INPUT_CONNECTIONS with "Too many possible connections". Offering
+    // them as if they were distinguishable is the misleading part.
+    const seen = new Set<string>();
+    const ambiguous = new Set<string>();
+    for (const connection of selectable) {
+      if (seen.has(connection.name)) ambiguous.add(connection.name);
+      seen.add(connection.name);
+    }
+
     const choices: PickerChoice[] = selectable.map((connection) => ({
       label:
         connection.scope === 'platform' ? `${connection.name} (platform)` : connection.name,
@@ -93,18 +107,34 @@ export function ConnectionInputPicker({
       // The status belongs here: a candidate in ERROR is offered like any other,
       // and picking it leaves the release waiting with nothing to explain why.
       status: connection.status,
-      description: connection.managed
-        ? `Provided by ${connection.providedBy || 'a deployed service'}`
-        : connection.description,
+      disabled: ambiguous.has(connection.name),
+      description: ambiguous.has(connection.name)
+        ? 'A project and a platform connection share this name, so neither can be picked. Rename one of them.'
+        : connection.managed
+          ? `Provided by ${connection.providedBy || 'a deployed service'}`
+          : connection.description,
     }));
-    if (input.optional) {
+    // "Nothing chosen" is not always "no connection". When the package carries
+    // a default, it is a template rendered against the Environment, which is
+    // how an Environment says "here, the database is that one". Calling that
+    // None, and writing an empty parameter for it, destroyed the inheritance in
+    // silence.
+    if (input.default) {
+      choices.unshift({
+        label: 'Inherited from the Environment',
+        value: NONE,
+        description: 'The Environment decides which connection this service gets',
+      });
+    } else if (input.optional) {
       choices.unshift({ label: 'None', value: NONE, description: 'Deploy without this connection' });
     }
     return choices;
-  }, [selectable, input.optional]);
+  }, [selectable, input.optional, input.default]);
 
-  // An optional input starts (and stays, unless picked) at None.
-  const displayedValue = input.optional ? value || NONE : value || undefined;
+  // An optional input, or one the Environment answers for, starts (and stays,
+  // unless picked) on that first entry.
+  const hasFallback = input.optional || Boolean(input.default);
+  const displayedValue = hasFallback ? value || NONE : value || undefined;
 
   return (
     <div className="form-field" data-testid={`connection-input-${input.alias}`}>
@@ -127,15 +157,18 @@ export function ConnectionInputPicker({
       </div>
       <small className="field-hint" style={{ marginTop: 0, marginBottom: '10px' }}>
         {input.description ||
-          (input.optional
-            ? 'Optional: pick an existing connection, or leave it to None.'
-            : 'Required: this service needs a connection of this type.')}
+          (input.default
+            ? 'The Environment provides one by default. Pick another to override it.'
+            : input.optional
+              ? 'Optional: pick an existing connection, or leave it to None.'
+              : 'Required: this service needs a connection of this type.')}
       </small>
       <Dropdown
         value={displayedValue}
         options={options}
         optionLabel="label"
         optionValue="value"
+        optionDisabled="disabled"
         placeholder={
           state === 'loading'
             ? 'Loading connections...'
@@ -314,13 +347,7 @@ function InlineConnectionCreate({
         {missingFields.length > 0 && (
           <small className="field-hint">Still to fill in: {missingFields.join(', ')}.</small>
         )}
-        {testResult && (
-          <Message
-            severity={testResult.success ? 'success' : 'error'}
-            icon={testResultIcon(testResult)}
-            text={`${testResult.message} (${testResult.durationMs} ms)`}
-          />
-        )}
+        {testResult && <ConnectionTestReport result={testResult} />}
         {error && <Message severity="error" text={error} />}
       </div>
     </Dialog>

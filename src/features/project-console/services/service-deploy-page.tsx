@@ -126,6 +126,12 @@ export default function ServiceDeployPage() {
 
   const currentStepKey: StepKey = steps[currentStep]?.key ?? 'basics';
 
+  // An input is answered by a pick, by the package tolerating none, or by the
+  // Environment answering for it through the package default. The last one used
+  // to block the wizard on a service that needed no choice at all.
+  const isInputAnswered = (input: PackageInput) =>
+    input.optional || Boolean(input.default) || !!connectionChoices[input.parameter!];
+
   const nameError = useMemo(() => k8sNameError(instanceName), [instanceName]);
 
   const isFormValid = useMemo(() => {
@@ -136,7 +142,7 @@ export default function ServiceDeployPage() {
       !nameError &&
       !!instanceName &&
       inputsState === 'loaded' &&
-      packageInputs.every((input) => input.optional || !!connectionChoices[input.parameter!]);
+      packageInputs.every(isInputAnswered);
     if (profileEditor) {
       return baseValid && profiles.length > 0;
     }
@@ -164,7 +170,7 @@ export default function ServiceDeployPage() {
           !schemaLoading &&
           inputsState === 'loaded' &&
           paramsValid &&
-          packageInputs.every((input) => input.optional || !!connectionChoices[input.parameter!])
+          packageInputs.every(isInputAnswered)
         );
       case 'profiles':
         // Only rendered when the schema declares a profile editor — require
@@ -278,9 +284,17 @@ export default function ServiceDeployPage() {
     // them; None stays an empty string, which the package resolves to no
     // binding at all.
     for (const input of packageInputs) {
-      if (input.parameter) {
-        mergedParams[input.parameter] = connectionChoices[input.parameter] ?? '';
+      if (!input.parameter) continue;
+      const chosen = connectionChoices[input.parameter];
+      if (chosen) {
+        mergedParams[input.parameter] = chosen;
+        continue;
       }
+      // Writing an empty string here is not the same as writing nothing: KuboCD
+      // merges the submitted parameters over the package defaults, so the empty
+      // value wins and the default, a template the Environment answers, never
+      // renders. A choice not made is left out.
+      delete mergedParams[input.parameter];
     }
 
     // Animate progress stages while the request is in flight.

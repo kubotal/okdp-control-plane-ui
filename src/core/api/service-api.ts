@@ -22,6 +22,9 @@ export interface PackageInput {
    *  package binds some other way — nothing to choose then. */
   parameter?: string;
   optional: boolean;
+  /** Template the package falls back to, rendered against the Environment. Its
+   *  presence means "not choosing" is a real answer, not an empty one. */
+  default?: string;
   description?: string;
 }
 
