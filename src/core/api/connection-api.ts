@@ -103,7 +103,9 @@ export interface InternalConnection {
   releaseName: string;
   namespace: string;
   status: string;
-  /** Empty until a Service actually carries the endpoint — never guessed. */
+  /** The address a consumer would reach, taken from the value the contract
+   *  declares as carrying it: a URI for trino or hive, host and port for a
+   *  database. Empty when the contract carries no address at all. */
   endpoint: string;
   host: string;
   port: number;

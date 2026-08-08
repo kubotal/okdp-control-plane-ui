@@ -78,12 +78,14 @@ describe('InternalConnectionList', () => {
     expect(screen.getByText('demo-trino')).toBeInTheDocument();
   });
 
-  it('says an endpoint is not available yet rather than showing one that would not resolve', async () => {
+  // Some contracts carry no address at all: oidc publishes an issuer and its
+  // endpoints, not a host. Saying so beats inventing one.
+  it('says a contract has no address rather than showing one that would not resolve', async () => {
     listInternal.mockResolvedValue([{ ...TRINO, endpoint: '', host: '', port: 0 }]);
 
     renderList();
 
-    expect(await screen.findByText('not available yet')).toBeInTheDocument();
+    expect(await screen.findByText('no address')).toBeInTheDocument();
   });
 
   it('copies the endpoint so it can be pasted into another service configuration', async () => {

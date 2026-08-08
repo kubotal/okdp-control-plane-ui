@@ -54,8 +54,9 @@ export function InternalConnectionList() {
       <PageHeader title="Internal connections" />
 
       <p className="mb-4 text-[13px] text-fg-secondary">
-        Endpoints exposed by the services deployed in this project. Use them to connect another
-        service of the project — an Airflow DAG to this project&apos;s Trino, for example.
+        Connections published by the services deployed in this project. Pick one when deploying a
+        service that needs it: the controller wires it, nothing has to be copied by hand. A service
+        that publishes no connection does not appear here.
       </p>
 
       <SearchFilter
@@ -122,9 +123,9 @@ export function InternalConnectionList() {
               connection.endpoint ? (
                 <span title={connection.endpoint}>{connection.endpoint}</span>
               ) : (
-                // Nothing backs the service yet, so there is no address to
-                // show; inventing one would send consumers nowhere.
-                <span className="italic opacity-70">not available yet</span>
+                // The contract carries no address of its own. oidc is the case:
+                // its consumers read the issuer and the endpoints, not a host.
+                <span className="italic opacity-70">no address</span>
               )
             }
           />
