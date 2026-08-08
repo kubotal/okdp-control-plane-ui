@@ -156,6 +156,14 @@ export function ConnectionDetailDialog({
                 console never reads their values.
               </p>
             ) : null}
+            {/* The two cases behave differently, and the name alone does not
+                tell them apart: deleting the connection removes a secret the
+                console wrote, and leaves an external one where it is. */}
+            <p className="mt-1 text-[12px] text-fg-secondary">
+              {detail.credentialsSecret.owned
+                ? 'Written by the console. Deleting this connection deletes it too.'
+                : 'Comes from outside the console, so it stays when this connection goes.'}
+            </p>
           </div>
         </Section>
       )}

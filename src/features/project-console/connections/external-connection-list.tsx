@@ -175,13 +175,12 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
     setValues({ ...connection.values });
     setInitialValues({ ...connection.values });
     setTestResult(null);
-    // A connection whose Secret is not the one the console would have created
-    // points at somebody else's, so the dialog reopens in that mode.
-    const ownSecret = `${connection.name}-credentials`;
-    const referenced = connection.credentialsSecret?.name ?? '';
-    const pointsElsewhere = Boolean(referenced) && referenced !== ownSecret;
+    // The server records which of the two it is, so the dialog reopens in the
+    // right mode instead of guessing from the Secret's name.
+    const secret = connection.credentialsSecret;
+    const pointsElsewhere = Boolean(secret) && !secret!.owned;
     setCredentialsMode(pointsElsewhere ? 'existing' : 'enter');
-    setExistingSecret(pointsElsewhere ? referenced : '');
+    setExistingSecret(pointsElsewhere ? secret!.name : '');
     setDialogVisible(true);
   };
 

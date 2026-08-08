@@ -67,6 +67,10 @@ export interface CredentialsSecretRef {
   name: string;
   namespace?: string;
   keys?: string[];
+  /** True when the console wrote this Secret, false when the connection points
+   *  at one that was already there, typically projected from a vault. Deleting
+   *  the connection removes the first and leaves the second alone. */
+  owned: boolean;
 }
 
 export interface Connection {

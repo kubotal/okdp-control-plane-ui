@@ -13,6 +13,7 @@ const postgres: ConnectionDetail = {
     name: 'crm-postgres-credentials',
     namespace: 'analytics',
     keys: ['password'],
+    owned: true,
   },
 };
 
@@ -96,5 +97,23 @@ describe('ConnectionDetailDialog', () => {
     const { container } = renderDialog(null);
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  // The two cases behave differently on delete, and the Secret's name alone
+  // does not tell them apart: an external one is free to follow the same
+  // naming convention.
+  it('says a secret written by the console goes with the connection', () => {
+    renderDialog(postgres);
+
+    expect(screen.getByText(/Deleting this connection deletes it too/)).toBeInTheDocument();
+  });
+
+  it('says a secret from elsewhere stays behind', () => {
+    renderDialog({
+      ...postgres,
+      credentialsSecret: { ...postgres.credentialsSecret!, name: 'from-vault', owned: false },
+    });
+
+    expect(screen.getByText(/Comes from outside the console/)).toBeInTheDocument();
   });
 });
