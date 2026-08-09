@@ -58,7 +58,9 @@ export interface ConnectionCatalog {
 
 // --- Connections ---
 
-export type ConnectionScope = 'project' | 'platform';
+/** A connection lives in the namespace of its project. The cluster-wide
+ *  scope was removed on 2026-08-10: nothing consumed it. */
+export type ConnectionScope = 'project';
 
 export type ConnectionValues = Record<string, string | number | boolean>;
 
@@ -187,12 +189,7 @@ function projectUrl(projectId: string): string {
   return `${environment.apiBaseUrl}/api/projects/${seg(projectId)}/connections`;
 }
 
-function platformUrl(): string {
-  return `${environment.apiBaseUrl}/api/platform-connections`;
-}
-
-/** Project connections and platform-wide ones share a shape; only the base URL
- *  differs, so the console can render both with the same components. */
+/** The endpoints of a project's connections. */
 function endpoints(baseUrl: string) {
   return {
     list(): Promise<Connection[]> {
@@ -226,9 +223,6 @@ export const connectionApi = {
     return endpoints(projectUrl(projectId));
   },
 
-  platform() {
-    return endpoints(platformUrl());
-  },
 
   listInternal(projectId: string): Promise<InternalConnection[]> {
     return http.getList<InternalConnection>(`${projectUrl(projectId)}/internal`);

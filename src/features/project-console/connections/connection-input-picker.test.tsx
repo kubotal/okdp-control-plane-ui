@@ -52,11 +52,13 @@ const SELECTABLE: SelectableConnection[] = [
     managed: false,
   },
   {
-    name: 'shared-pg',
-    scope: 'platform',
+    // Published by a deployed release rather than declared by hand.
+    name: 'demo-trino-endpoint',
+    scope: 'project',
     type: 'database-server',
     status: 'READY',
-    managed: false,
+    managed: true,
+    providedBy: 'demo-trino',
   },
 ];
 
@@ -83,14 +85,14 @@ describe('ConnectionInputPicker', () => {
     selectable.mockResolvedValue(SELECTABLE);
   });
 
-  it('should offer the compatible connections, platform ones labelled', async () => {
+  it('should offer the compatible connections, saying who provides a managed one', async () => {
     renderPicker();
     await waitFor(() => expect(selectable).toHaveBeenCalledWith('demo', 'database-server'));
 
     fireEvent.click(screen.getByRole('button', { name: /Select a connection/ }));
 
     expect(await screen.findByText('rnacentral')).toBeInTheDocument();
-    expect(screen.getByText('shared-pg (platform)')).toBeInTheDocument();
+    expect(screen.getByText(/Provided by demo-trino/)).toBeInTheDocument();
   });
 
   it('should offer None when the package tolerates no connection', async () => {
@@ -158,28 +160,6 @@ describe('ConnectionInputPicker', () => {
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('fresh-pg'));
   });
 
-  // A package parameter carries a bare name, so two connections of the same
-  // name at different scopes send the same value: the choice cannot be
-  // expressed, and the release ends in WAIT_INPUT_CONNECTIONS with "Too many
-  // possible connections". Offering them as if they were distinguishable is
-  // the misleading part.
-  it('refuses a name held at both scopes rather than sending an ambiguous value', async () => {
-    selectable.mockResolvedValue([
-      { name: 'postgres', scope: 'project', type: 'database-server', status: 'READY', managed: false },
-      { name: 'postgres', scope: 'platform', type: 'database-server', status: 'READY', managed: false },
-    ]);
-
-    renderPicker();
-    await waitFor(() => expect(selectable).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole('combobox'));
-
-    // One warning per row, and neither row is selectable.
-    const warnings = await screen.findAllByText(/A project and a platform connection share this name/);
-    expect(warnings).toHaveLength(2);
-    for (const warning of warnings) {
-      expect(warning.closest('[data-p-disabled="true"]')).not.toBeNull();
-    }
-  });
 
   // KuboCD forbids a literal default on a connectionRef: it is always a
   // template rendered against the Context, which is how an Environment says

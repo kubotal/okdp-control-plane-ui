@@ -15,7 +15,6 @@ import {
   type ConnectionCatalog,
   type ConnectionConsumer,
   type ConnectionRequest,
-  type ConnectionScope,
   type ConnectionTestResult,
   type ConnectionType,
   type ConnectionValues,
@@ -43,22 +42,16 @@ const isConnectionChanged = (incoming: Connection, current: Connection) =>
   incoming.message !== current.message ||
   incoming.description !== current.description;
 
-interface ExternalConnectionListProps {
-  /** 'platform' addresses the cluster-wide connections shared by every
-   *  project; it has no project in its route. */
-  scope?: ConnectionScope;
-}
-
-/** Connections to resources living outside the platform — a corporate
- *  PostgreSQL, an S3 bucket — declared by the user and consumable by the
- *  services deployed here. */
-export function ExternalConnectionList({ scope = 'project' }: ExternalConnectionListProps) {
+/** Connections to resources living outside the platform, a corporate
+ *  PostgreSQL or an S3 bucket, declared by the user and consumable by the
+ *  services deployed in this project. */
+export function ExternalConnectionList() {
   const { projectId = '' } = useParams<{ projectId: string }>();
   const { toast, showSuccess, showError } = useToastMessages();
 
   const api = useMemo(
-    () => (scope === 'platform' ? connectionApi.platform() : connectionApi.project(projectId)),
-    [scope, projectId],
+    () => connectionApi.project(projectId),
+    [projectId],
   );
 
   const [catalog, setCatalog] = useState<ConnectionCatalog | null>(null);
@@ -88,9 +81,6 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
   const [credentialsMode, setCredentialsMode] = useState<CredentialsMode>('enter');
   const [existingSecret, setExistingSecret] = useState('');
 
-  // The platform scope is not project-scoped, but usePolledResources keys on a
-  // project id; a constant stands in so polling still starts.
-  const pollKey = scope === 'platform' ? 'platform' : projectId;
   const fetchList = useCallback(() => api.list(), [api]);
 
   const {
@@ -98,7 +88,7 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
     loading,
     reload,
   } = usePolledResources(
-    pollKey,
+    projectId,
     fetchList,
     isConnectionChanged,
     useCallback(() => showError('Failed to load connections'), [showError]),
@@ -238,12 +228,6 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
   const askDelete = (connection: Connection) => {
     setDeleteTarget(connection);
     setConsumers(null);
-    // A platform connection is consumed from any project, so the question has
-    // no single answer there; only a project connection is asked about.
-    if (scope === 'platform') {
-      setConsumers([]);
-      return;
-    }
     connectionApi
       .consumers(projectId, connection.name)
       .then(setConsumers)
@@ -291,7 +275,7 @@ export function ExternalConnectionList({ scope = 'project' }: ExternalConnection
       <Toast ref={toast} position="bottom-right" />
 
       <PageHeader
-        title={scope === 'platform' ? 'Platform connections' : 'External connections'}
+        title="External connections"
         actions={
           <button className="create-btn" onClick={openCreateDialog} disabled={!crdAvailable}>
             <i className="pi pi-plus"></i>
