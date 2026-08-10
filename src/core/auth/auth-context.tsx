@@ -60,19 +60,33 @@ function isOidcCallback(): boolean {
   return params.has('state') && (params.has('code') || params.has('error'));
 }
 
-/** Read the configured claim out of a token, following dots. Keycloak nests
- *  its realm roles under realm_access.roles, another provider may put a flat
- *  list at the top level, and which one it is belongs to the cluster's
- *  configuration rather than to this bundle. */
+/** Read the configured claim out of the ID token's claims, following dots.
+ *
+ *  The claim has to be one the ID TOKEN carries: that is what oidc-client-ts
+ *  exposes as the profile, and it is not the same set as the access token's.
+ *  Keycloak publishes realm_access.roles in the access token only, so a console
+ *  pointed at it sees no role while the token plainly carries the right ones. */
 export function readRoles(claims: unknown, path: string): string[] {
   let current: unknown = claims;
   for (const segment of path.split('.')) {
-    if (!current || typeof current !== 'object') return [];
+    if (!current || typeof current !== 'object') {
+      // Silence is what made that case expensive to diagnose: the roles were
+      // there, the console saw none, and nothing said why.
+      logger.warn(
+        `No "${path}" claim in the ID token, so every role check fails. Claims present: ` +
+          (claims && typeof claims === 'object' ? Object.keys(claims).join(', ') : '(none)'),
+      );
+      return [];
+    }
     current = (current as Record<string, unknown>)[segment];
   }
   // A claim of the wrong shape means the path points at the wrong thing, and
   // inventing roles out of it would grant access nobody configured.
-  return Array.isArray(current) ? current.filter((r): r is string => typeof r === 'string') : [];
+  if (!Array.isArray(current)) {
+    logger.warn(`The "${path}" claim is not a list of roles, so no role is granted.`);
+    return [];
+  }
+  return current.filter((r): r is string => typeof r === 'string');
 }
 
 function toAuthState(user: User | null): Pick<AuthState, 'isAuthenticated' | 'profile' | 'roles'> {

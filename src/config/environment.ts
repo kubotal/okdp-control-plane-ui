@@ -31,8 +31,11 @@ interface OidcConfig {
  *  one realm are the groups of another, and hardcoding either meant the
  *  console only ever worked against the realm it was written for. */
 interface IdentityConfig {
-  /** Path to the claim carrying the caller's roles, dots allowed
-   *  ("realm_access.roles"), because Keycloak nests its realm roles. */
+  /** Path to the claim carrying the caller's roles, dots allowed for a nested
+   *  one. It must be a claim of the ID TOKEN: that is what oidc-client-ts
+   *  exposes as the user profile, and it is not the same set as the access
+   *  token's. Keycloak, for one, keeps realm_access.roles out of the ID token,
+   *  so pointing at it silently yields no role at all. */
   rolesClaim: string;
   /** The role that grants administration. */
   adminRole: string;
@@ -64,7 +67,7 @@ const development: Environment = {
   },
 
   identity: {
-    rolesClaim: runtime.rolesClaim || 'realm_access.roles',
+    rolesClaim: runtime.rolesClaim || 'groups',
     adminRole: runtime.adminRole || 'platform_admin',
   },
 

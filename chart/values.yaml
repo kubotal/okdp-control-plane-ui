@@ -18,12 +18,16 @@ oidc:
   authority: ""
   clientId: okdp-ui
 
-# Which claim of the token carries the caller's roles, and which role opens the
-# administration screens. Defaults match Keycloak, where realm roles are nested
-# under realm_access. Point rolesClaim at a flat claim ("roles", "groups") for a
-# provider that publishes one.
+# Which claim of the ID token carries the caller's roles, and which role opens
+# the administration screens.
+#
+# It must be a claim of the ID token, not of the access token: the console reads
+# the profile oidc-client-ts builds from the ID token. Keycloak keeps its realm
+# roles (realm_access.roles) out of the ID token, so the default points at the
+# groups claim, which OKDP realms publish with the same values. A dotted path is
+# resolved for a provider that nests them.
 identity:
-  rolesClaim: realm_access.roles
+  rolesClaim: groups
   adminRole: platform_admin
 
 service:

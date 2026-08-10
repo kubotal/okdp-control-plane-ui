@@ -109,10 +109,14 @@ export function GroupList() {
       <PageHeader
         title="Groups"
         actions={
-          <button className="create-btn" onClick={openNew}>
-            <i className="pi pi-plus"></i>
-            <span>Create group</span>
-          </button>
+          // Offering creation for a feature the cluster does not carry only
+          // leads to a dialog that fails on save.
+          unavailable ? null : (
+            <button className="create-btn" onClick={openNew}>
+              <i className="pi pi-plus"></i>
+              <span>Create group</span>
+            </button>
+          )
         }
       />
 

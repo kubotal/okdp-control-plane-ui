@@ -13,7 +13,7 @@ cat > /usr/share/nginx/html/config.js <<EOF
 window.__OKDP_CONFIG__ = {
   authority: "${OIDC_AUTHORITY:-}",
   clientId: "${OIDC_CLIENT_ID:-}",
-  rolesClaim: "${OIDC_ROLES_CLAIM:-realm_access.roles}",
+  rolesClaim: "${OIDC_ROLES_CLAIM:-groups}",
   adminRole: "${OIDC_ADMIN_ROLE:-platform_admin}"
 };
 EOF
