@@ -76,6 +76,72 @@ function formatLabel(name: string): string {
     .trim();
 }
 
+/** Structured parameters (a role mapping, a list of datasources) edited as
+ *  JSON. The text being typed is kept locally, otherwise every keystroke would
+ *  have to parse: a half-written object is not valid JSON. The parsed value is
+ *  only pushed up when it parses, so a typo never replaces the structure. */
+function JsonField({
+  field,
+  value,
+  invalid,
+  onChange,
+}: {
+  field: SchemaField;
+  value: unknown;
+  invalid: boolean;
+  onChange: (parsed: unknown) => void;
+}) {
+  const serialize = (v: unknown) =>
+    v === undefined || v === null || (typeof v === 'object' && Object.keys(v).length === 0)
+      ? ''
+      : JSON.stringify(v, null, 2);
+
+  const [text, setText] = useState(() => serialize(value));
+  const [badJson, setBadJson] = useState(false);
+  // Follow the value while the user is not the one changing it (version switch,
+  // schema reload), without fighting their cursor.
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setText(serialize(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  const commit = (next: string) => {
+    setText(next);
+    if (next.trim() === '') {
+      setBadJson(false);
+      onChange(field.type === 'array' ? [] : {});
+      return;
+    }
+    try {
+      onChange(JSON.parse(next));
+      setBadJson(false);
+    } catch {
+      setBadJson(true);
+    }
+  };
+
+  return (
+    <>
+      <InputTextarea
+        id={field.name}
+        value={text}
+        rows={4}
+        spellCheck={false}
+        placeholder={field.type === 'array' ? '[]' : '{}'}
+        className={`w-full mono${invalid || badJson ? ' field-invalid' : ''}`}
+        onFocus={() => (focused.current = true)}
+        onBlur={() => {
+          focused.current = false;
+          if (!badJson) setText(serialize(value));
+        }}
+        onChange={(e) => commit(e.target.value)}
+      />
+      {badJson && <small className="field-hint err">JSON invalide, la valeur n\'est pas enregistrée.</small>}
+    </>
+  );
+}
+
 function resolveWidget(field: SchemaField): string {
   const widget = field['x-ui-widget'];
   if (widget) return widget;
@@ -83,6 +149,9 @@ function resolveWidget(field: SchemaField): string {
   if (field.enum && field.enum.length > 0) return 'select';
   if (field.type === 'boolean') return 'toggle';
   if (field.type === 'integer' || field.type === 'number') return 'number';
+  // A structured value in a text input renders as [object Object], and editing
+  // it would replace the structure by that string.
+  if (field.type === 'object' || field.type === 'array') return 'json';
   return 'text';
 }
 
@@ -318,6 +387,15 @@ export function DynamicSchemaForm({
             className="w-full"
             inputClassName={invalid ? 'field-invalid' : undefined}
             onChange={(e) => setValue(field.name, e.target.value)}
+          />
+        );
+      case 'json':
+        return (
+          <JsonField
+            field={field}
+            value={value}
+            invalid={!!fieldErrors[field.name]}
+            onChange={(parsed) => setValue(field.name, parsed)}
           />
         );
       case 'textarea':
