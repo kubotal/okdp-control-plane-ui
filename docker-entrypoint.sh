@@ -6,10 +6,15 @@
 # src/config/environment.ts reads window.__OKDP_CONFIG__ from it.
 set -eu
 
+# rolesClaim and adminRole travel the same way: which claim carries the roles,
+# and which role grants administration, are properties of the realm the cluster
+# authenticates against, not of this image. The defaults match Keycloak.
 cat > /usr/share/nginx/html/config.js <<EOF
 window.__OKDP_CONFIG__ = {
   authority: "${OIDC_AUTHORITY:-}",
-  clientId: "${OIDC_CLIENT_ID:-}"
+  clientId: "${OIDC_CLIENT_ID:-}",
+  rolesClaim: "${OIDC_ROLES_CLAIM:-realm_access.roles}",
+  adminRole: "${OIDC_ADMIN_ROLE:-platform_admin}"
 };
 EOF
 

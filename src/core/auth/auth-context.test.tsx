@@ -153,14 +153,41 @@ describe('AuthProvider', () => {
   });
 
   describe('Roles', () => {
-    it('should return true for existing role', async () => {
-      mocks.getUser.mockResolvedValue(mockUser({ sub: '123', groups: ['admins', 'users'] }));
+    it('should read the roles from the configured claim', async () => {
+      mocks.getUser.mockResolvedValue(
+        mockUser({ sub: '123', realm_access: { roles: ['platform_admin', 'auditor'] } }),
+      );
 
       const { result } = renderHook(() => useAuth(), { wrapper });
       await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
 
-      expect(result.current.hasRole('admins')).toBe(true);
+      expect(result.current.hasRole('platform_admin')).toBe(true);
       expect(result.current.hasRole('superusers')).toBe(false);
+      expect(result.current.isAdmin).toBe(true);
+    });
+
+    // Only the configured claim is read. The sandbox realm happens to publish
+    // the same roles under groups too, but a console that quietly falls back
+    // grants access from a claim nobody configured.
+    it('should not fall back to the groups claim', async () => {
+      mocks.getUser.mockResolvedValue(mockUser({ sub: '123', groups: ['platform_admin'] }));
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      expect(result.current.isAdmin).toBe(false);
+    });
+
+    it('should grant nothing when the claim holds the wrong shape', async () => {
+      mocks.getUser.mockResolvedValue(
+        mockUser({ sub: '123', realm_access: { roles: 'platform_admin' } }),
+      );
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+
+      expect(result.current.roles).toEqual([]);
+      expect(result.current.isAdmin).toBe(false);
     });
   });
 

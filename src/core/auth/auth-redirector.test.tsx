@@ -38,6 +38,8 @@ function authState(roles: string[] = []) {
     profile: { username: 'jdoe' },
     roles,
     hasRole: (role: string) => roles.includes(role),
+    // The realm's administrator role, not a name this bundle picks.
+    isAdmin: roles.includes('platform_admin'),
     forceLogout: vi.fn(),
   };
 }
@@ -114,7 +116,7 @@ describe('AuthRedirector', () => {
     });
 
     it('should land an operator with admin access on /admin', async () => {
-      mocks.useAuth.mockReturnValue(authState(['admins']));
+      mocks.useAuth.mockReturnValue(authState(['platform_admin']));
 
       renderAt('/login');
 
@@ -122,7 +124,7 @@ describe('AuthRedirector', () => {
     });
 
     it('should leave /home alone for an admin, so the header link still reaches their project', async () => {
-      mocks.useAuth.mockReturnValue(authState(['admins']));
+      mocks.useAuth.mockReturnValue(authState(['platform_admin']));
 
       renderAt('/home');
       await flushEffects();
@@ -167,7 +169,7 @@ describe('AuthRedirector', () => {
     });
 
     it('should land an admin on /admin from the index route (regression: RootRedirect won the race to /home)', async () => {
-      mocks.useAuth.mockReturnValue(authState(['admins']));
+      mocks.useAuth.mockReturnValue(authState(['platform_admin']));
 
       renderAtRoot();
 
@@ -175,7 +177,7 @@ describe('AuthRedirector', () => {
     });
 
     it('should let a restored deep link win over the admin landing on the index route', async () => {
-      mocks.useAuth.mockReturnValue(authState(['admins']));
+      mocks.useAuth.mockReturnValue(authState(['platform_admin']));
       sessionStorage.setItem(AUTH_RETURN_URL_KEY, '/projects/test/services');
 
       renderAtRoot();
@@ -184,13 +186,13 @@ describe('AuthRedirector', () => {
     });
 
     it('should hold the index route until auth is ready, then land the admin on /admin', async () => {
-      mocks.useAuth.mockReturnValue({ ...authState(['admins']), ready: false });
+      mocks.useAuth.mockReturnValue({ ...authState(['platform_admin']), ready: false });
 
       const view = renderAtRoot();
       await flushEffects();
       expect(currentPath).toBe('/');
 
-      mocks.useAuth.mockReturnValue(authState(['admins']));
+      mocks.useAuth.mockReturnValue(authState(['platform_admin']));
       view.rerender(
         <MemoryRouter initialEntries={['/']}>
           <AuthRedirector />
@@ -206,13 +208,13 @@ describe('AuthRedirector', () => {
     });
 
     it('should keep the deep link saved before auth was ready (regression: re-read of the consumed key)', async () => {
-      mocks.useAuth.mockReturnValue({ ...authState(['admins']), ready: false });
+      mocks.useAuth.mockReturnValue({ ...authState(['platform_admin']), ready: false });
       sessionStorage.setItem(AUTH_RETURN_URL_KEY, '/settings');
 
       const view = renderAtRoot();
       await flushEffects();
 
-      mocks.useAuth.mockReturnValue(authState(['admins']));
+      mocks.useAuth.mockReturnValue(authState(['platform_admin']));
       view.rerender(
         <MemoryRouter initialEntries={['/']}>
           <AuthRedirector />

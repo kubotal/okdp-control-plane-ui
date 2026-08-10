@@ -89,7 +89,7 @@ export function ConsoleShell({
     },
     // Views is reached from the sidebar world-switcher; /views (redirect)
     // still serves old links.
-    ...(auth.hasRole('admins')
+    ...(auth.isAdmin
       ? [
           {
             label: 'Administration',

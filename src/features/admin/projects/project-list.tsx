@@ -72,7 +72,7 @@ function rollupMetric(
 
 export default function ProjectList() {
   const auth = useAuth();
-  const isAdmin = auth.hasRole('admins');
+  const isAdmin = auth.isAdmin;
   // The projects list (REST snapshot + SSE merge) lives in ProjectContext —
   // the provider is always mounted above this page; no second subscription.
   const {

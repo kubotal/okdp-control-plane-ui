@@ -69,7 +69,7 @@ export function AuthRedirector() {
 
     // Landing only: /home stays the shared entry point for the header link.
     if (shouldRedirect('/home')) {
-      navigate(auth.hasRole('admins') ? '/admin' : '/home', { replace: true });
+      navigate(auth.isAdmin ? '/admin' : '/home', { replace: true });
     }
   }, [auth, navigate]);
 
@@ -101,5 +101,5 @@ export function RootRedirect() {
   if (!auth.ready) {
     return null;
   }
-  return <Navigate to={returnUrl || (auth.hasRole('admins') ? '/admin' : '/home')} replace />;
+  return <Navigate to={returnUrl || (auth.isAdmin ? '/admin' : '/home')} replace />;
 }

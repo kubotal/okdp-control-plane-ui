@@ -25,6 +25,10 @@ spec:
               value: {{ .Values.oidc.authority | quote }}
             - name: OIDC_CLIENT_ID
               value: {{ .Values.oidc.clientId | quote }}
+            - name: OIDC_ROLES_CLAIM
+              value: {{ .Values.identity.rolesClaim | quote }}
+            - name: OIDC_ADMIN_ROLE
+              value: {{ .Values.identity.adminRole | quote }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}

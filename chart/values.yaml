@@ -18,6 +18,14 @@ oidc:
   authority: ""
   clientId: okdp-ui
 
+# Which claim of the token carries the caller's roles, and which role opens the
+# administration screens. Defaults match Keycloak, where realm roles are nested
+# under realm_access. Point rolesClaim at a flat claim ("roles", "groups") for a
+# provider that publishes one.
+identity:
+  rolesClaim: realm_access.roles
+  adminRole: platform_admin
+
 service:
   type: ClusterIP
   port: 4200

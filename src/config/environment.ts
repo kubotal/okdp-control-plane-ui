@@ -8,7 +8,8 @@
 
 declare global {
   interface Window {
-    __OKDP_CONFIG__?: Partial<Pick<OidcConfig, 'authority' | 'clientId'>>;
+    __OKDP_CONFIG__?: Partial<Pick<OidcConfig, 'authority' | 'clientId'>> &
+      Partial<IdentityConfig>;
   }
 }
 
@@ -25,10 +26,23 @@ interface OidcConfig {
   logLevel: string;
 }
 
+/** How a token says who the caller is, and which role opens the
+ *  administration screens. Both come from the cluster at startup: the roles of
+ *  one realm are the groups of another, and hardcoding either meant the
+ *  console only ever worked against the realm it was written for. */
+interface IdentityConfig {
+  /** Path to the claim carrying the caller's roles, dots allowed
+   *  ("realm_access.roles"), because Keycloak nests its realm roles. */
+  rolesClaim: string;
+  /** The role that grants administration. */
+  adminRole: string;
+}
+
 interface Environment {
   production: boolean;
   apiBaseUrl: string;
   oidc: OidcConfig;
+  identity: IdentityConfig;
   githubUrl: string;
 }
 
@@ -47,6 +61,11 @@ const development: Environment = {
     responseType: 'code',
     silentRenew: true,
     logLevel: 'Debug',
+  },
+
+  identity: {
+    rolesClaim: runtime.rolesClaim || 'realm_access.roles',
+    adminRole: runtime.adminRole || 'platform_admin',
   },
 
   // External Links

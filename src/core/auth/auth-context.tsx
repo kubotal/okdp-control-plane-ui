@@ -29,6 +29,10 @@ export interface AuthContextValue extends AuthState {
   forceLogout: () => void;
   token: () => Promise<string | undefined>;
   hasRole: (role: string) => boolean;
+  /** Whether the caller holds the role the cluster designates as its
+   *  administrator one. Callers must not name that role themselves: it differs
+   *  from realm to realm, which is exactly what made the hardcoded one wrong. */
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -56,6 +60,21 @@ function isOidcCallback(): boolean {
   return params.has('state') && (params.has('code') || params.has('error'));
 }
 
+/** Read the configured claim out of a token, following dots. Keycloak nests
+ *  its realm roles under realm_access.roles, another provider may put a flat
+ *  list at the top level, and which one it is belongs to the cluster's
+ *  configuration rather than to this bundle. */
+export function readRoles(claims: unknown, path: string): string[] {
+  let current: unknown = claims;
+  for (const segment of path.split('.')) {
+    if (!current || typeof current !== 'object') return [];
+    current = (current as Record<string, unknown>)[segment];
+  }
+  // A claim of the wrong shape means the path points at the wrong thing, and
+  // inventing roles out of it would grant access nobody configured.
+  return Array.isArray(current) ? current.filter((r): r is string => typeof r === 'string') : [];
+}
+
 function toAuthState(user: User | null): Pick<AuthState, 'isAuthenticated' | 'profile' | 'roles'> {
   if (!user || user.expired) {
     return { isAuthenticated: false, profile: null, roles: [] };
@@ -67,7 +86,11 @@ function toAuthState(user: User | null): Pick<AuthState, 'isAuthenticated' | 'pr
     firstName: (userData.given_name || userData.firstName || userData.name) as string | undefined,
     lastName: userData.family_name || userData.lastName,
   };
-  return { isAuthenticated: true, profile, roles: userData.groups || [] };
+  return {
+    isAuthenticated: true,
+    profile,
+    roles: readRoles(userData, environment.identity.rolesClaim),
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -224,6 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       forceLogout,
       token,
       hasRole: (role: string) => state.roles.includes(role),
+      isAdmin: state.roles.includes(environment.identity.adminRole),
     }),
     [state, login, logout, forceLogout, token],
   );
