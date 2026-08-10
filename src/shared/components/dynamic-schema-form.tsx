@@ -6,6 +6,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { Dropdown } from 'primereact/dropdown';
 import { InputSwitch } from 'primereact/inputswitch';
 import { Password } from 'primereact/password';
+import { Button } from 'primereact/button';
+import { connectionApi, type SelectableConnection } from '../../core/api/connection-api';
 
 /* The dsf-root class scopes the .field-invalid PrimeReact-input override in
    the PrimeReact overrides section of styles.css. */
@@ -26,6 +28,13 @@ export interface SchemaField {
   maxLength?: number;
   pattern?: string;
   multipleOf?: number;
+  /** Kept for structured values: the shape of an array's items, and whether an
+   *  object accepts free keys. Without them a mapping and a datasource list are
+   *  indistinguishable. */
+  items?: any;
+  additionalProperties?: any;
+  properties?: any;
+  'x-kubocd-connection-ref'?: { interface: string };
   'x-ui-order'?: number;
   'x-ui-group'?: string;
   'x-ui-widget'?: string;
@@ -45,6 +54,9 @@ export interface FieldGroup {
 
 export interface DynamicSchemaFormProps {
   schema: any;
+  /** Needed to offer the project's connections on nested connectionRef fields
+   *  (a datasource naming a trino connection). Omitted, those stay text. */
+  projectId?: string;
   initialValues?: Record<string, any>;
   onParametersChange: (params: Record<string, any>) => void;
   /**
@@ -142,6 +154,171 @@ function JsonField({
   );
 }
 
+/** A free-form map, edited as pairs. This is what a role mapping is: a claim
+ *  value on the left, the roles it grants on the right. Several roles are
+ *  comma-separated, and the value keeps the shape it had, list or plain string. */
+function KeyValueField({
+  value,
+  onChange,
+}: {
+  value: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+}) {
+  const rows = Object.entries(value);
+  const asText = (v: unknown) => (Array.isArray(v) ? v.join(', ') : String(v ?? ''));
+  const asValue = (text: string, previous: unknown) => {
+    const parts = text.split(',').map((p) => p.trim()).filter(Boolean);
+    return Array.isArray(previous) || parts.length > 1 ? parts : text.trim();
+  };
+
+  const replace = (index: number, key: string, raw: string) => {
+    const next: Record<string, unknown> = {};
+    rows.forEach(([k, v], i) => {
+      if (i === index) {
+        if (key) next[key] = asValue(raw, v);
+      } else {
+        next[k] = v;
+      }
+    });
+    onChange(next);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {rows.map(([key, val], index) => (
+        <div key={index} className="flex items-center gap-2">
+          <InputText
+            className="w-full mono"
+            value={key}
+            placeholder="rôle OIDC"
+            onChange={(e) => replace(index, e.target.value, asText(val))}
+          />
+          <span className="text-fg-secondary">&rarr;</span>
+          <InputText
+            className="w-full mono"
+            value={asText(val)}
+            placeholder="rôles accordés, séparés par des virgules"
+            onChange={(e) => replace(index, key, e.target.value)}
+          />
+          <Button
+            type="button"
+            icon="pi pi-times"
+            text
+            aria-label={`Retirer ${key}`}
+            onClick={() => {
+              const next = { ...value };
+              delete next[key];
+              onChange(next);
+            }}
+          />
+        </div>
+      ))}
+      <div>
+        <Button
+          type="button"
+          label="Ajouter une entrée"
+          icon="pi pi-plus"
+          text
+          onClick={() => onChange({ ...value, '': '' })}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** A list of objects whose shape the schema knows: one row per entry, one
+ *  column per property. A property carrying a connection marker gets the
+ *  project's connections of that contract rather than a free-text field, which
+ *  is the only way to name one without copying it by hand. */
+function ObjectListField({
+  field,
+  value,
+  projectId,
+  onChange,
+}: {
+  field: SchemaField;
+  value: any[];
+  projectId?: string;
+  onChange: (next: any[]) => void;
+}) {
+  const props: Record<string, any> = field.items?.properties || {};
+  const columns = Object.keys(props);
+  const [connections, setConnections] = useState<Record<string, SelectableConnection[]>>({});
+
+  // One lookup per contract used by the row, not per row.
+  useEffect(() => {
+    if (!projectId) return;
+    const contracts = columns
+      .map((c) => props[c]?.['x-kubocd-connection-ref']?.interface)
+      .filter((i): i is string => !!i);
+    [...new Set(contracts)].forEach((iface) => {
+      connectionApi
+        .selectable(projectId, iface)
+        .then((found) => setConnections((c) => ({ ...c, [iface]: found })))
+        .catch(() => setConnections((c) => ({ ...c, [iface]: [] })));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, field.name]);
+
+  const patch = (index: number, column: string, columnValue: any) =>
+    onChange(value.map((row, i) => (i === index ? { ...row, [column]: columnValue } : row)));
+
+  return (
+    <div className="flex flex-col gap-2">
+      {value.map((row, index) => (
+        <div key={index} className="flex items-end gap-2">
+          {columns.map((column) => {
+            const contract = props[column]?.['x-kubocd-connection-ref']?.interface;
+            return (
+              <div key={column} className="flex-1">
+                <label className="text-[12px] text-fg-secondary">{formatLabel(column)}</label>
+                {contract ? (
+                  <Dropdown
+                    value={row[column] ?? null}
+                    options={(connections[contract] || []).map((c) => ({
+                      label: c.name,
+                      value: c.name,
+                    }))}
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder={`Connexion ${contract}`}
+                    appendTo={document.body}
+                    className="w-full"
+                    onChange={(e) => patch(index, column, e.value)}
+                  />
+                ) : (
+                  <InputText
+                    className="w-full"
+                    value={row[column] ?? ''}
+                    placeholder={props[column]?.default ?? ''}
+                    onChange={(e) => patch(index, column, e.target.value)}
+                  />
+                )}
+              </div>
+            );
+          })}
+          <Button
+            type="button"
+            icon="pi pi-times"
+            text
+            aria-label="Retirer la ligne"
+            onClick={() => onChange(value.filter((_, i) => i !== index))}
+          />
+        </div>
+      ))}
+      <div>
+        <Button
+          type="button"
+          label="Ajouter"
+          icon="pi pi-plus"
+          text
+          onClick={() => onChange([...value, {}])}
+        />
+      </div>
+    </div>
+  );
+}
+
 function resolveWidget(field: SchemaField): string {
   const widget = field['x-ui-widget'];
   if (widget) return widget;
@@ -151,7 +328,9 @@ function resolveWidget(field: SchemaField): string {
   if (field.type === 'integer' || field.type === 'number') return 'number';
   // A structured value in a text input renders as [object Object], and editing
   // it would replace the structure by that string.
-  if (field.type === 'object' || field.type === 'array') return 'json';
+  if (field.type === 'array' && field.items?.properties) return 'object-list';
+  if (field.type === 'object' && Object.keys(field.properties || {}).length === 0) return 'key-value';
+  if (field.type === 'object' || field.type === 'array') return 'yaml';
   return 'text';
 }
 
@@ -190,6 +369,10 @@ function buildFields(schema: any): SchemaField[] {
     maxLength: def.maxLength,
     pattern: def.pattern,
     multipleOf: def.multipleOf,
+    items: def.items,
+    additionalProperties: def.additionalProperties,
+    properties: def.properties,
+    'x-kubocd-connection-ref': def['x-kubocd-connection-ref'],
     'x-ui-order': def['x-ui-order'] ?? 999,
     'x-ui-group': def['x-ui-group'] || 'General',
     'x-ui-widget': def['x-ui-widget'],
@@ -309,6 +492,7 @@ const EMPTY_VALUES: Record<string, any> = {};
 
 export function DynamicSchemaForm({
   schema,
+  projectId,
   initialValues = EMPTY_VALUES,
   onParametersChange,
   onValidityChange,
@@ -389,7 +573,23 @@ export function DynamicSchemaForm({
             onChange={(e) => setValue(field.name, e.target.value)}
           />
         );
-      case 'json':
+      case 'object-list':
+        return (
+          <ObjectListField
+            field={field}
+            value={Array.isArray(value) ? value : []}
+            projectId={projectId}
+            onChange={(next) => setValue(field.name, next)}
+          />
+        );
+      case 'key-value':
+        return (
+          <KeyValueField
+            value={value && typeof value === 'object' ? (value as Record<string, unknown>) : {}}
+            onChange={(next) => setValue(field.name, next)}
+          />
+        );
+      case 'yaml':
         return (
           <JsonField
             field={field}

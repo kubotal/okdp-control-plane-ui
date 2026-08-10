@@ -523,6 +523,7 @@ export default function ServiceDeployPage() {
                     {visibleSchema ? (
                       <DynamicSchemaForm
                         schema={visibleSchema}
+                        projectId={projectId}
                         onParametersChange={setParameters}
                         onValidityChange={setParamsValid}
                       />

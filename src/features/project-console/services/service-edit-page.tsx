@@ -339,6 +339,7 @@ export default function ServiceEditPage() {
                   ))}
                   <DynamicSchemaForm
                     schema={visibleSchema}
+                    projectId={projectName}
                     initialValues={parameterValues}
                     onParametersChange={(params) => {
                       parametersRef.current = params;
