@@ -96,6 +96,29 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * A feature the server does not implement on this cluster, because the CRDs it
+ * rests on are not installed: kubauth for identity, external-secrets for the
+ * vault integration. The server answers 501 and names the feature, so a screen
+ * can say "not installed here" instead of the red panel it shows for a server
+ * that actually broke. Returns the feature name, or null for any other error.
+ */
+export function unavailableFeature(err: unknown): string | null {
+  if (!(err instanceof HttpError) || err.status !== 501 || !err.body) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(err.body);
+    // The reason is the contract; the message is prose and may be reworded.
+    if (parsed?.reason === 'feature-not-installed') {
+      return typeof parsed.feature === 'string' && parsed.feature ? parsed.feature : 'this feature';
+    }
+  } catch {
+    // not JSON — not one of ours
+  }
+  return null;
+}
+
 export const http = {
   async get<T>(url: string, init?: RequestInit): Promise<T> {
     return parseJson<T>(await request(url, init));

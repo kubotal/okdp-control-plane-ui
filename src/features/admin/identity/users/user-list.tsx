@@ -23,7 +23,7 @@ import { StatusTag } from '../../../../shared/components/status-tag';
 export function UserList() {
   const { toast, showSuccess, showError } = useToastMessages();
 
-  const { users, loading, error, refresh: refreshUsers } = useIdentityUsers();
+  const { users, loading, error, unavailable, refresh: refreshUsers } = useIdentityUsers();
   const { groups: availableGroups } = useIdentityGroups();
 
   const [globalFilter, setGlobalFilter] = useState('');
@@ -133,7 +133,13 @@ export function UserList() {
         }
       />
 
-      {error && users.length === 0 ? (
+      {unavailable ? (
+        <EmptyState
+          icon="pi pi-info-circle"
+          title="Identity management is not installed"
+          description={`This cluster does not carry ${unavailable}, so users are managed by the identity provider itself rather than from here.`}
+        />
+      ) : error && users.length === 0 ? (
         <EmptyState
           icon="pi pi-exclamation-triangle"
           title="Failed to load users"

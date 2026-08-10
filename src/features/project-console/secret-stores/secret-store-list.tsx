@@ -106,6 +106,7 @@ export function SecretStoreList() {
   const {
     items: stores,
     loading,
+    unavailable,
     reload: loadStores,
     merge: mergeStores,
   } = usePolledResources(projectId, secretStoreApi.list, isStoreChanged, () =>
@@ -293,8 +294,20 @@ export function SecretStoreList() {
           emptyMessage={
             <div className="flex items-center justify-center gap-2 p-8 text-[14px] text-fg-secondary">
               <i className="pi pi-lock text-[1.2rem] opacity-50"></i>
+              {/* Inviting the user to add a store the cluster cannot store is
+                  worse than saying nothing: the dialog would fail on save. */}
               <span>
-                No secret stores configured. Click <strong>Add secret store</strong> to connect one.
+                {unavailable ? (
+                  <>
+                    Vault integration is not installed on this cluster ({unavailable}), so secret
+                    stores cannot be configured from here.
+                  </>
+                ) : (
+                  <>
+                    No secret stores configured. Click <strong>Add secret store</strong> to connect
+                    one.
+                  </>
+                )}
               </span>
             </div>
           }
