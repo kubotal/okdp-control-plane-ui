@@ -60,18 +60,13 @@ function isOidcCallback(): boolean {
   return params.has('state') && (params.has('code') || params.has('error'));
 }
 
-/** Read the configured claim out of the ID token's claims, following dots.
- *
- *  The claim has to be one the ID TOKEN carries: that is what oidc-client-ts
- *  exposes as the profile, and it is not the same set as the access token's.
- *  Keycloak publishes realm_access.roles in the access token only, so a console
- *  pointed at it sees no role while the token plainly carries the right ones. */
+/** Read the configured claim out of the ID token, following dots. It must be an
+ *  ID token claim: Keycloak keeps realm_access.roles in the access token only,
+ *  which the console never sees. */
 export function readRoles(claims: unknown, path: string): string[] {
   let current: unknown = claims;
   for (const segment of path.split('.')) {
     if (!current || typeof current !== 'object') {
-      // Silence is what made that case expensive to diagnose: the roles were
-      // there, the console saw none, and nothing said why.
       logger.warn(
         `No "${path}" claim in the ID token, so every role check fails. Claims present: ` +
           (claims && typeof claims === 'object' ? Object.keys(claims).join(', ') : '(none)'),
@@ -80,8 +75,6 @@ export function readRoles(claims: unknown, path: string): string[] {
     }
     current = (current as Record<string, unknown>)[segment];
   }
-  // A claim of the wrong shape means the path points at the wrong thing, and
-  // inventing roles out of it would grant access nobody configured.
   if (!Array.isArray(current)) {
     logger.warn(`The "${path}" claim is not a list of roles, so no role is granted.`);
     return [];

@@ -26,18 +26,11 @@ interface OidcConfig {
   logLevel: string;
 }
 
-/** How a token says who the caller is, and which role opens the
- *  administration screens. Both come from the cluster at startup: the roles of
- *  one realm are the groups of another, and hardcoding either meant the
- *  console only ever worked against the realm it was written for. */
+/** Read from the cluster at startup: the roles of one realm are the groups of
+ *  another. rolesClaim must name an ID token claim, dots allowed for a nested
+ *  one. */
 interface IdentityConfig {
-  /** Path to the claim carrying the caller's roles, dots allowed for a nested
-   *  one. It must be a claim of the ID TOKEN: that is what oidc-client-ts
-   *  exposes as the user profile, and it is not the same set as the access
-   *  token's. Keycloak, for one, keeps realm_access.roles out of the ID token,
-   *  so pointing at it silently yields no role at all. */
   rolesClaim: string;
-  /** The role that grants administration. */
   adminRole: string;
 }
 

@@ -11,10 +11,8 @@ export const DEFAULT_POLL_INTERVAL_MS = 10_000;
  *  avoids DataTable re-render churn on every tick. `fetchList` and
  *  `isRowChanged` must be referentially stable (module-level functions).
  *
- *  A feature the cluster does not carry (external-secrets missing, say) is not
- *  reported as a load failure: it surfaces as `unavailable`, and polling stops.
- *  Otherwise the screen showed an error toast every ten seconds for something
- *  no amount of retrying would fix. */
+ *  A feature the cluster does not carry surfaces as `unavailable` rather than a
+ *  load failure, and polling stops: retrying cannot fix it. */
 export function usePolledResources<T>(
   projectId: string,
   fetchList: (projectId: string) => Promise<T[]>,
