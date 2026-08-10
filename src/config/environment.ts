@@ -53,8 +53,8 @@ const development: Environment = {
   apiBaseUrl: 'http://localhost:8093',
 
   oidc: {
-    authority: runtime.authority || 'https://kubauth.okdp.dev-sandbox',
-    clientId: runtime.clientId || 'okdp-app',
+    authority: runtime.authority || 'https://keycloak.okdp.sandbox/realms/master',
+    clientId: runtime.clientId || 'okdp-ui',
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
     scope: 'openid profile email groups offline_access',

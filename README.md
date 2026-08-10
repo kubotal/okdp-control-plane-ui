@@ -61,7 +61,8 @@ build/deploy story.
 - A running **OKDP control plane** reachable at `http://localhost:8093` (the
   development API target — see [okdp-control-plane-server](https://github.com/OKDP/okdp-control-plane-server))
 - Access to the development **OIDC identity provider** (the dev build
-  authenticates against the OKDP sandbox authority `https://kubauth.okdp.dev-sandbox`)
+  authenticates against the okdp-sandbox authority
+  `https://keycloak.okdp.sandbox/realms/master`)
 
 ### Tested with
 
@@ -77,7 +78,7 @@ within the supported range may work but are untested.
 ## Quick start
 
 Run it directly on your machine, or in the devcontainer (only Docker needed). Both
-talk to the **OKDP dev-sandbox** (see its README for cluster, DNS and CA setup).
+talk to **okdp-sandbox** (see its README for cluster, DNS and CA setup).
 
 **Directly:**
 
@@ -115,8 +116,8 @@ VITE v7  ready in NNN ms
 | | Development | Production |
 |---|---|---|
 | API base URL | `http://localhost:8093` | `/api` (same-origin, behind an ingress) |
-| OIDC authority | OKDP sandbox (`https://kubauth.okdp.dev-sandbox`) | inherited from dev (see below) |
-| OIDC client | `okdp-app` | `okdp-app` |
+| OIDC authority | okdp-sandbox (`https://keycloak.okdp.sandbox/realms/master`) | inherited from dev (see below) |
+| OIDC client | `okdp-ui` | `okdp-ui` |
 
 Authentication uses the OIDC authorization-code flow (`oidc-client-ts`) with
 silent renew; tokens live in `sessionStorage`. Roles come from the OIDC `groups`
@@ -149,7 +150,7 @@ must route `/api` to the control plane.
 ```bash
 helm install okdp-ui ./chart -n okdp-system \
   --set image.tag=0.6.0 \
-  --set ingress.host=console.okdp.dev-sandbox \
+  --set ingress.host=console.okdp.sandbox \
   --set backend.service=okdp-server
 ```
 

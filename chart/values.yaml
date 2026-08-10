@@ -33,7 +33,7 @@ service:
 # Public exposure of the console.
 ingress:
   className: nginx
-  host: console.okdp.dev-sandbox
+  host: console.okdp.sandbox
   clusterIssuer: default-issuer
   tlsSecretName: okdp-ui-tls
 

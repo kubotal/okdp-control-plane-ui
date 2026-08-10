@@ -397,11 +397,12 @@ under `src/core/`, reusable presentational pieces under
   bearer-protected. Closing this requires backend coordination (a short-lived
   stream ticket, or replacing `EventSource` with a fetch-based SSE reader once
   the control plane enforces auth on stream endpoints).
-- **Production OIDC config is baked in at build time** and currently inherits
-  the dev-sandbox authority (`https://kubauth.okdp.dev-sandbox`, client
-  `okdp-app`). Any non-sandbox deployment needs either build-time
-  `VITE_*` variables or a runtime `window.__ENV` injection (entrypoint-templated
-  script in `index.html`) — to be decided.
+- **OIDC config is read at startup, not baked into the bundle.** The container
+  entrypoint writes `/config.js`, which `index.html` loads before the bundle:
+  authority, client id, and since the identity lot the claim carrying the roles
+  and the role granting administration. One image therefore runs against any
+  cluster. The values in `src/config/environment.ts` are only the fallback for
+  `npm run dev`, and point at okdp-sandbox.
 - **Production API base path.** `environment.apiBaseUrl` is `/api` in
   production while every client appends `/api/...`, so requests leave the
   browser as `/api/api/...`. This assumes the fronting ingress strips the first
