@@ -42,3 +42,11 @@ ingress:
   tlsSecretName: okdp-ui-tls
 
 resources: {}
+
+# Forward proxy the pod must go through to reach anything outside the cluster.
+# Empty means no proxy, which is the case on any sandbox. Rendered as the three
+# environment variables every HTTP client reads.
+proxy:
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: ""

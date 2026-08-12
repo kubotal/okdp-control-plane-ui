@@ -29,6 +29,20 @@ spec:
               value: {{ .Values.identity.rolesClaim | quote }}
             - name: OIDC_ADMIN_ROLE
               value: {{ .Values.identity.adminRole | quote }}
+            {{- with .Values.proxy }}
+            {{- if .httpProxy }}
+            - { name: HTTP_PROXY,  value: {{ .httpProxy | quote }} }
+            - { name: http_proxy,  value: {{ .httpProxy | quote }} }
+            {{- end }}
+            {{- if .httpsProxy }}
+            - { name: HTTPS_PROXY, value: {{ .httpsProxy | quote }} }
+            - { name: https_proxy, value: {{ .httpsProxy | quote }} }
+            {{- end }}
+            {{- if .noProxy }}
+            - { name: NO_PROXY,    value: {{ .noProxy | quote }} }
+            - { name: no_proxy,    value: {{ .noProxy | quote }} }
+            {{- end }}
+            {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
