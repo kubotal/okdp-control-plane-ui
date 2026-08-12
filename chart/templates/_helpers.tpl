@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "okdp-ui.name" -}}
+{{- define "okdp-control-plane-ui.name" -}}
 {{- .Chart.Name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -9,7 +9,7 @@ Expand the name of the chart.
 Create a default fully qualified app name, truncated at 63 chars
 because of the DNS naming spec.
 */}}
-{{- define "okdp-ui.fullname" -}}
+{{- define "okdp-control-plane-ui.fullname" -}}
 {{- if contains .Chart.Name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -20,9 +20,9 @@ because of the DNS naming spec.
 {{/*
 Common labels
 */}}
-{{- define "okdp-ui.labels" -}}
+{{- define "okdp-control-plane-ui.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version }}
-{{ include "okdp-ui.selectorLabels" . }}
+{{ include "okdp-control-plane-ui.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
@@ -30,7 +30,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "okdp-ui.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "okdp-ui.name" . }}
+{{- define "okdp-control-plane-ui.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "okdp-control-plane-ui.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}

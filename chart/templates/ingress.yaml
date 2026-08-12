@@ -1,9 +1,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "okdp-ui.fullname" . }}
+  name: {{ include "okdp-control-plane-ui.fullname" . }}
   labels:
-    {{- include "okdp-ui.labels" . | nindent 4 }}
+    {{- include "okdp-control-plane-ui.labels" . | nindent 4 }}
   annotations:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer }}
 spec:
@@ -31,6 +31,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "okdp-ui.fullname" . }}
+                name: {{ include "okdp-control-plane-ui.fullname" . }}
                 port:
                   number: {{ .Values.service.port }}

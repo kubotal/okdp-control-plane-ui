@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "okdp-ui.fullname" . }}
+  name: {{ include "okdp-control-plane-ui.fullname" . }}
   labels:
-    {{- include "okdp-ui.labels" . | nindent 4 }}
+    {{- include "okdp-control-plane-ui.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "okdp-ui.selectorLabels" . | nindent 6 }}
+      {{- include "okdp-control-plane-ui.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "okdp-ui.labels" . | nindent 8 }}
+        {{- include "okdp-control-plane-ui.labels" . | nindent 8 }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
