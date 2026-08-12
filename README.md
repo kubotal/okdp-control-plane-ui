@@ -150,17 +150,17 @@ must route `/api` to the control plane.
 The published chart is the normal path:
 
 ```bash
-helm install okdp-ui oci://quay.io/okdp/charts/okdp-ui --version <X>
+helm install okdp-control-plane-ui oci://quay.io/okdp/charts/okdp-control-plane-ui --version <X>
 ```
 
 The examples below install from `chart/` in this checkout, which is what a
 contributor does while changing the chart itself.
 
 ```bash
-helm install okdp-ui ./chart -n okdp-system \
+helm install okdp-control-plane-ui ./chart -n okdp-system \
   --set image.tag=0.6.0 \
   --set ingress.host=okdp-ui.okdp.sandbox \
-  --set backend.service=okdp-server \
+  --set backend.service=okdp-control-plane-server \
   --set oidc.authority=https://keycloak.okdp.sandbox/realms/master
 ```
 
