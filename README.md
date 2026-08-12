@@ -150,11 +150,16 @@ must route `/api` to the control plane.
 ```bash
 helm install okdp-ui ./chart -n okdp-system \
   --set image.tag=0.6.0 \
-  --set ingress.host=console.okdp.sandbox \
-  --set backend.service=okdp-server
+  --set ingress.host=okdp-ui.okdp.sandbox \
+  --set backend.service=okdp-server \
+  --set oidc.authority=https://keycloak.okdp.sandbox/realms/master
 ```
 
-The OIDC client and CORS are provided by the platform (okdp-sandbox), not the chart.
+`oidc.authority` has no default: the console cannot reach any provider without
+it. `ingress.host` must match the client's redirect URIs in the realm.
+
+The OIDC client itself and CORS are provided by the platform (okdp-sandbox), not
+the chart.
 
 ## OKDP Integration
 
