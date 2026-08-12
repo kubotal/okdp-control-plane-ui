@@ -8,6 +8,7 @@ import { InputSwitch } from 'primereact/inputswitch';
 import { Password } from 'primereact/password';
 import { Button } from 'primereact/button';
 import { connectionApi, type SelectableConnection } from '../../core/api/connection-api';
+import { formatLabel } from '../utils/format-label';
 
 /* The dsf-root class scopes the .field-invalid PrimeReact-input override in
    the PrimeReact overrides section of styles.css. */
@@ -78,14 +79,6 @@ const GROUP_ICONS: Record<string, string> = {
 
 function getGroupIcon(groupName: string): string {
   return GROUP_ICONS[groupName] || 'pi-cog';
-}
-
-function formatLabel(name: string): string {
-  return name
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/_/g, ' ')
-    .replace(/^./, (s) => s.toUpperCase())
-    .trim();
 }
 
 /** Structured parameters (a role mapping, a list of datasources) edited as
