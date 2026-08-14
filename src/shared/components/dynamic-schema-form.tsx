@@ -35,7 +35,7 @@ export interface SchemaField {
   items?: any;
   additionalProperties?: any;
   properties?: any;
-  'x-kubocd-connection-ref'?: { interface: string };
+  'x-kubocd-connection-ref'?: { connectionType: string };
   'x-ui-order'?: number;
   'x-ui-group'?: string;
   'x-ui-widget'?: string;
@@ -242,7 +242,7 @@ function ObjectListField({
   useEffect(() => {
     if (!projectId) return;
     const contracts = columns
-      .map((c) => props[c]?.['x-kubocd-connection-ref']?.interface)
+      .map((c) => props[c]?.['x-kubocd-connection-ref']?.connectionType)
       .filter((i): i is string => !!i);
     [...new Set(contracts)].forEach((iface) => {
       connectionApi
@@ -261,7 +261,7 @@ function ObjectListField({
       {value.map((row, index) => (
         <div key={index} className="flex items-end gap-2">
           {columns.map((column) => {
-            const contract = props[column]?.['x-kubocd-connection-ref']?.interface;
+            const contract = props[column]?.['x-kubocd-connection-ref']?.connectionType;
             return (
               <div key={column} className="flex-1">
                 <label className="text-[12px] text-fg-secondary">{formatLabel(column)}</label>
