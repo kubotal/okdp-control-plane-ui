@@ -1,7 +1,7 @@
 import { SelectButton } from 'primereact/selectbutton';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
-import type { ConnectionType, ConnectionValues } from '../../../core/api/connection-api';
+import type { ConnectionTypeDescriptor, ConnectionValues } from '../../../core/api/connection-api';
 
 /** Where the credentials of a connection come from. */
 export type CredentialsMode = 'enter' | 'existing';
@@ -31,7 +31,7 @@ export function CredentialsBlock({
   onExistingSecretChange,
   editMode = false,
 }: {
-  connectionType: ConnectionType;
+  connectionType: ConnectionTypeDescriptor;
   mode: CredentialsMode;
   onModeChange: (mode: CredentialsMode) => void;
   values: ConnectionValues;

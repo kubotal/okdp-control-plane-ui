@@ -16,7 +16,7 @@ import {
   type ConnectionConsumer,
   type ConnectionRequest,
   type ConnectionTestResult,
-  type ConnectionType,
+  type ConnectionTypeDescriptor,
   type ConnectionValues,
 } from '../../../core/api/connection-api';
 import { apiErrorMessage, formatMediumDateTime } from '../services/service-utils';
@@ -105,7 +105,7 @@ export function ExternalConnectionList() {
     () => (catalog?.types ?? []).filter((type) => type.external),
     [catalog],
   );
-  const selectedType: ConnectionType | undefined = useMemo(
+  const selectedType: ConnectionTypeDescriptor | undefined = useMemo(
     () => creatableTypes.find((type) => type.name === typeName),
     [creatableTypes, typeName],
   );

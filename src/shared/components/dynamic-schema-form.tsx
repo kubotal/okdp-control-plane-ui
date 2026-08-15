@@ -244,11 +244,11 @@ function ObjectListField({
     const contracts = columns
       .map((c) => props[c]?.['x-kubocd-connection-ref']?.connectionType)
       .filter((i): i is string => !!i);
-    [...new Set(contracts)].forEach((iface) => {
+    [...new Set(contracts)].forEach((connectionType) => {
       connectionApi
-        .selectable(projectId, iface)
-        .then((found) => setConnections((c) => ({ ...c, [iface]: found })))
-        .catch(() => setConnections((c) => ({ ...c, [iface]: [] })));
+        .selectable(projectId, connectionType)
+        .then((found) => setConnections((c) => ({ ...c, [connectionType]: found })))
+        .catch(() => setConnections((c) => ({ ...c, [connectionType]: [] })));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, field.name]);

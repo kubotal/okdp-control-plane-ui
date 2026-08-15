@@ -34,8 +34,8 @@ export interface ConnectionField {
   derived?: { from: string; map: Record<string, string> };
 }
 
-export interface ConnectionType {
-  /** Also the KuboCD Interface this type produces: one type, one contract. A
+export interface ConnectionTypeDescriptor {
+  /** Also the KuboCD ConnectionType this descriptor produces: one type, one contract. A
    *  package asking for `database-server` is answered by the type of the same
    *  name, whose engine field says whether it is PostgreSQL or MySQL. */
   name: string;
@@ -50,7 +50,7 @@ export interface ConnectionType {
 }
 
 export interface ConnectionCatalog {
-  types: ConnectionType[];
+  types: ConnectionTypeDescriptor[];
   /** False while the KuboCD connection CRDs are not installed: external
    *  connections cannot be persisted yet, internal ones still work. */
   crdAvailable: boolean;
@@ -229,9 +229,9 @@ export const connectionApi = {
   },
 
   /** Connections a deployment form can offer for an input of that contract. */
-  selectable(projectId: string, iface: string): Promise<SelectableConnection[]> {
+  selectable(projectId: string, connectionType: string): Promise<SelectableConnection[]> {
     return http.getList<SelectableConnection>(
-      `${projectUrl(projectId)}/selectable?interface=${seg(iface)}`,
+      `${projectUrl(projectId)}/selectable?connectionType=${seg(connectionType)}`,
     );
   },
 

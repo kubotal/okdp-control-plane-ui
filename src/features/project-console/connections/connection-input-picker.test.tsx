@@ -64,7 +64,7 @@ const SELECTABLE: SelectableConnection[] = [
 
 const INPUT: PackageInput = {
   alias: 'warehouse',
-  interface: 'database-server',
+  connectionType: 'database-server',
   parameter: 'pgConnection',
   optional: true,
 };
@@ -133,7 +133,7 @@ describe('ConnectionInputPicker', () => {
   // A trino connection exists because a Trino is deployed — there is nothing
   // a user could type into a creation form.
   it('should not offer creating for an internal-only contract', async () => {
-    renderPicker({ alias: 'engine', interface: 'trino', parameter: 'trinoConnection', optional: true });
+    renderPicker({ alias: 'engine', connectionType: 'trino', parameter: 'trinoConnection', optional: true });
     await waitFor(() => expect(catalog).toHaveBeenCalled());
 
     expect(screen.queryByRole('button', { name: /New connection/ })).not.toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('ConnectionInputPicker', () => {
   it('says a binding is inherited rather than calling it None', async () => {
     renderPicker({
       alias: 'db',
-      interface: 'database-server',
+      connectionType: 'database-server',
       parameter: 'db',
       optional: false,
       default: '{{ .Context.defaultDatabase }}',

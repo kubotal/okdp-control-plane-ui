@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { ConnectionType } from '../../../core/api/connection-api';
+import type { ConnectionTypeDescriptor } from '../../../core/api/connection-api';
 import { CredentialsBlock, type CredentialsMode } from './credentials-block';
 
-const DATABASE_SERVER: ConnectionType = {
+const DATABASE_SERVER: ConnectionTypeDescriptor = {
   name: 'database-server',
   displayName: 'SQL database',
   description: 'SQL database server.',

@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import {
   connectionApi,
-  type ConnectionType,
+  type ConnectionTypeDescriptor,
   type ConnectionValues,
   type ConnectionTestResult,
   type SelectableConnection,
@@ -52,7 +52,7 @@ export function ConnectionInputPicker({
   const [selectable, setSelectable] = useState<SelectableConnection[]>([]);
   /** The type answering this contract, when a user may declare one by hand.
    *  Null for an internal-only contract (trino, ...), where nothing is offered. */
-  const [creatableType, setCreatableType] = useState<ConnectionType | null>(null);
+  const [creatableType, setCreatableType] = useState<ConnectionTypeDescriptor | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   /** Loading and failure are not the same as "nothing matches": saying "no
    *  compatible connection" while the request is in flight, or after it failed,
@@ -62,7 +62,7 @@ export function ConnectionInputPicker({
   const reload = useCallback(() => {
     setState('loading');
     connectionApi
-      .selectable(projectId, input.interface)
+      .selectable(projectId, input.connectionType)
       .then((found) => {
         setSelectable(found);
         setState('loaded');
@@ -71,18 +71,18 @@ export function ConnectionInputPicker({
         setSelectable([]);
         setState('error');
       });
-  }, [projectId, input.interface]);
+  }, [projectId, input.connectionType]);
 
   useEffect(() => {
     reload();
     connectionApi
       .catalog()
       .then((catalog) => {
-        const found = catalog.types.find((type) => type.name === input.interface);
+        const found = catalog.types.find((type) => type.name === input.connectionType);
         setCreatableType(found && found.external ? found : null);
       })
       .catch(() => setCreatableType(null));
-  }, [reload, input.interface]);
+  }, [reload, input.connectionType]);
 
   const options = useMemo<PickerChoice[]>(() => {
     const choices: PickerChoice[] = selectable.map((connection) => ({
@@ -122,7 +122,7 @@ export function ConnectionInputPicker({
       <div className="field-head">
         <label style={{ margin: 0 }}>
           Connection — {input.alias}
-          <span className="muted-text small"> ({input.interface})</span>
+          <span className="muted-text small"> ({input.connectionType})</span>
         </label>
         {/* Creating is only offered for contracts a user may declare by hand:
             an internal-only type (trino, ...) exists because a service does. */}
@@ -206,7 +206,7 @@ function InlineConnectionCreate({
   onCreated,
 }: {
   projectId: string;
-  connectionType: ConnectionType;
+  connectionType: ConnectionTypeDescriptor;
   visible: boolean;
   onHide: () => void;
   onCreated: (name: string) => void;

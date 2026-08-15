@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import type { ConnectionType } from '../../../core/api/connection-api';
+import type { ConnectionTypeDescriptor } from '../../../core/api/connection-api';
 import { missingRequiredFields, omitBlankSecrets, toDynamicSchema } from './connection-schema';
 
-const POSTGRES: ConnectionType = {
+const POSTGRES: ConnectionTypeDescriptor = {
   name: 'database-server',
   displayName: 'PostgreSQL',
   description: 'PostgreSQL database server.',
