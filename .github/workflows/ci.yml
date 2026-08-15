@@ -1,0 +1,33 @@
+name: ci
+
+# Lint, test and build the console on every push to main and every pull
+# request, so regressions are caught before merge. This is the workflow the
+# README ci badge points to.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same ref cancels the previous, still-running check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # No --fix in CI: report lint violations instead of silently fixing them.
+      - run: npx eslint src
+      - run: npm test
+      - run: npm run build
