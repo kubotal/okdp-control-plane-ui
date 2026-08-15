@@ -38,6 +38,14 @@ export interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function createUserManager(): UserManager {
+  if (!environment.oidc.authority) {
+    throw new Error(
+      "oidc.authority n'est pas configuree. L'entrypoint du conteneur ecrit /config.js " +
+        'depuis les values du chart: renseignez oidc.authority. La console echoue ici ' +
+        "plutot que de deriver vers une autorite qui n'est pas la votre.",
+    );
+  }
+
   if (!environment.production && environment.oidc.logLevel.toLowerCase() === 'debug') {
     Log.setLogger(console);
     Log.setLevel(Log.DEBUG);
