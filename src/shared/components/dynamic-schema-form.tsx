@@ -108,7 +108,7 @@ function JsonField({
   const focused = useRef(false);
   useEffect(() => {
     if (!focused.current) setText(serialize(value));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [value]);
 
   const commit = (next: string) => {
