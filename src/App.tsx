@@ -4,6 +4,7 @@ import { PrimeReactProvider } from 'primereact/api';
 import { AuthProvider, useAuth } from './core/auth/auth-context';
 import { AuthRedirector } from './core/auth/auth-redirector';
 import { ProjectContextProvider } from './core/context/project-context';
+import { CapabilitiesProvider } from './core/context/capabilities-context';
 import { ThemeProvider } from './core/theme/theme-context';
 import { EnvBarProvider } from './core/preferences/env-bar-context';
 import { NavPrefsProvider } from './core/preferences/nav-prefs-context';
@@ -42,9 +43,11 @@ export function App() {
                   <AuthProvider>
                     <AuthGate>
                       <AuthRedirector />
-                      <ProjectContextProvider>
-                        <AppRoutes />
-                      </ProjectContextProvider>
+                      <CapabilitiesProvider>
+                        <ProjectContextProvider>
+                          <AppRoutes />
+                        </ProjectContextProvider>
+                      </CapabilitiesProvider>
                     </AuthGate>
                   </AuthProvider>
                 </BrowserRouter>
