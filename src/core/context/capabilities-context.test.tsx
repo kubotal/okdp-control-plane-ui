@@ -34,9 +34,6 @@ describe('CapabilitiesProvider', () => {
     expect(result.current.capabilities?.identity.provider).toBe('kubauth');
   });
 
-  // The point of the lot: on a platform with its own OIDC provider the Identity
-  // area has nothing to manage, so it is hidden rather than left leading to a
-  // screen that can only report itself unavailable.
   it('reports no user management on an external provider', async () => {
     get.mockResolvedValue(caps(false, 'external'));
 
@@ -46,9 +43,6 @@ describe('CapabilitiesProvider', () => {
     expect(result.current.userManagement).toBe(false);
   });
 
-  // A server predating the endpoint answers an error. Hiding the area then
-  // would remove a working screen, so the absent answer keeps everything
-  // visible and the server's own 501 stays the fallback.
   it('keeps the area visible when the platform does not answer', async () => {
     get.mockRejectedValue(new Error('404 Not Found'));
 

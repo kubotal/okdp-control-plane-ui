@@ -13,12 +13,9 @@ export interface CapabilitiesContextValue {
 
 const CapabilitiesContext = createContext<CapabilitiesContextValue | null>(null);
 
-/** Reads /api/capabilities once, after sign-in. A platform on its own OIDC
- *  provider serves no user and group API, so the Identity area is hidden rather
- *  than left in the menu leading to a screen that can only say "unavailable".
- *
- *  Read once on purpose: the provider comes from the platform Context, which
- *  changes at the pace of a redeploy, not of a session. */
+/** Reads /api/capabilities once, after sign-in, so the areas the platform does
+ *  not serve stay out of the navigation. Once is enough: the provider changes at
+ *  the pace of a redeploy, not of a session. */
 export function CapabilitiesProvider({ children }: { children: ReactNode }) {
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,8 +28,7 @@ export function CapabilitiesProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setCapabilities(caps);
       })
       .catch((err) => {
-        // An older server has no such endpoint. Staying null keeps every area
-        // visible, which is the behaviour before capabilities existed.
+        // A server without the endpoint leaves this null, and every area visible.
         logger.error('Failed to load platform capabilities', err);
       })
       .finally(() => {

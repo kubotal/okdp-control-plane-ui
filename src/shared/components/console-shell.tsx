@@ -98,9 +98,7 @@ export function ConsoleShell({
             icon: 'pi pi-shield',
             command: () => navigate('/admin'),
           },
-          // Identity is served by kubauth only, hence the capability check:
-          // elsewhere the entry led to a screen that could only report itself
-          // unavailable.
+          // Identity is served by kubauth only.
           ...(userManagement
             ? [
                 {

@@ -39,15 +39,12 @@ describe('AdminPage', () => {
     expect(await screen.findByText('Identity')).toBeTruthy();
   });
 
-  // The tile used to be there whatever the platform ran on, and led to a screen
-  // whose every call came back unavailable.
   it('drops the Identity tile when the platform serves no user management', async () => {
     get.mockResolvedValue(caps(false));
 
     renderAdmin();
 
-    // Projects proves the page finished rendering, so the absence below is a
-    // decision and not a snapshot taken too early.
+    // Projects first: it proves the page finished rendering.
     expect(await screen.findByText('Projects')).toBeTruthy();
     await waitFor(() => expect(screen.queryByText('Identity')).toBeNull());
     expect(screen.getByText('Service Catalog')).toBeTruthy();

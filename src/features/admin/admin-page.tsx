@@ -4,8 +4,7 @@ import { useCapabilities } from '../../core/context/capabilities-context';
 /** /admin — control plane administration zone. Tiles fan out to the
  *  individual administration areas. */
 export default function AdminPage() {
-  // Identity only exists under kubauth. On a platform with its own OIDC
-  // provider the tile would lead to a screen with nothing to manage.
+  // Identity is served by kubauth only.
   const { userManagement } = useCapabilities();
 
   return (
