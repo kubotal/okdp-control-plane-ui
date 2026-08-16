@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import {
   connectionApi,
-  type ConnectionTypeDescriptor,
+  type ContractDescriptor,
   type ConnectionValues,
   type ConnectionTestResult,
   type SelectableConnection,
@@ -50,9 +50,10 @@ export function ConnectionInputPicker({
   onChange: (connectionName: string) => void;
 }) {
   const [selectable, setSelectable] = useState<SelectableConnection[]>([]);
-  /** The type answering this contract, when a user may declare one by hand.
-   *  Null for an internal-only contract (trino, ...), where nothing is offered. */
-  const [creatableType, setCreatableType] = useState<ConnectionTypeDescriptor | null>(null);
+  /** The descriptor answering this contract, when a user may declare one by
+   *  hand. Null for an internal-only contract (trino, ...), where nothing is
+   *  offered. */
+  const [creatableType, setCreatableType] = useState<ContractDescriptor | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   /** Loading and failure are not the same as "nothing matches": saying "no
    *  compatible connection" while the request is in flight, or after it failed,
@@ -62,7 +63,7 @@ export function ConnectionInputPicker({
   const reload = useCallback(() => {
     setState('loading');
     connectionApi
-      .selectable(projectId, input.connectionType)
+      .selectable(projectId, input.contract)
       .then((found) => {
         setSelectable(found);
         setState('loaded');
@@ -71,18 +72,18 @@ export function ConnectionInputPicker({
         setSelectable([]);
         setState('error');
       });
-  }, [projectId, input.connectionType]);
+  }, [projectId, input.contract]);
 
   useEffect(() => {
     reload();
     connectionApi
       .catalog()
       .then((catalog) => {
-        const found = catalog.types.find((type) => type.name === input.connectionType);
+        const found = catalog.types.find((type) => type.name === input.contract);
         setCreatableType(found && found.external ? found : null);
       })
       .catch(() => setCreatableType(null));
-  }, [reload, input.connectionType]);
+  }, [reload, input.contract]);
 
   const options = useMemo<PickerChoice[]>(() => {
     const choices: PickerChoice[] = selectable.map((connection) => ({
@@ -122,10 +123,10 @@ export function ConnectionInputPicker({
       <div className="field-head">
         <label style={{ margin: 0 }}>
           Connection — {input.alias}
-          <span className="muted-text small"> ({input.connectionType})</span>
+          <span className="muted-text small"> ({input.contract})</span>
         </label>
         {/* Creating is only offered for contracts a user may declare by hand:
-            an internal-only type (trino, ...) exists because a service does. */}
+            an internal-only contract (trino, ...) exists because a service does. */}
         {creatableType && (
           <Button
             type="button"
@@ -180,7 +181,7 @@ export function ConnectionInputPicker({
       {createOpen && creatableType && (
         <InlineConnectionCreate
           projectId={projectId}
-          connectionType={creatableType}
+          contract={creatableType}
           visible={createOpen}
           onHide={() => setCreateOpen(false)}
           onCreated={(name) => {
@@ -200,13 +201,13 @@ export function ConnectionInputPicker({
  *  page, so the behaviour cannot drift. */
 function InlineConnectionCreate({
   projectId,
-  connectionType,
+  contract,
   visible,
   onHide,
   onCreated,
 }: {
   projectId: string;
-  connectionType: ConnectionTypeDescriptor;
+  contract: ContractDescriptor;
   visible: boolean;
   onHide: () => void;
   onCreated: (name: string) => void;
@@ -220,16 +221,16 @@ function InlineConnectionCreate({
   const [credentialsMode, setCredentialsMode] = useState<CredentialsMode>('enter');
   const [existingSecret, setExistingSecret] = useState('');
 
-  const schema = useMemo(() => toDynamicSchema(connectionType), [connectionType]);
+  const schema = useMemo(() => toDynamicSchema(contract), [contract]);
   const nameError = name ? k8sNameError(name) : null;
-  const credentialFields = connectionType.fields.filter((field) => field.secret);
+  const credentialFields = contract.fields.filter((field) => field.secret);
   const missingCredentials =
     credentialsMode === 'existing'
       ? existingSecret
         ? []
         : ['Secret name']
       : credentialFields.filter((f) => f.required && !values[f.name]).map((f) => f.label);
-  const missingFields = [...missingRequiredFields(connectionType, values), ...missingCredentials];
+  const missingFields = [...missingRequiredFields(contract, values), ...missingCredentials];
   const formValid = !!name && !nameError && missingFields.length === 0;
 
   const api = connectionApi.project(projectId);
@@ -238,7 +239,7 @@ function InlineConnectionCreate({
     setTesting(true);
     setTestResult(null);
     api
-      .test({ type: connectionType.name, values: omitBlankSecrets(connectionType, values) })
+      .test({ type: contract.name, values: omitBlankSecrets(contract, values) })
       .then(setTestResult)
       .catch(() => setTestResult({ success: false, message: 'Test request failed', durationMs: 0 }))
       .finally(() => setTesting(false));
@@ -250,8 +251,8 @@ function InlineConnectionCreate({
     api
       .create({
         name,
-        type: connectionType.name,
-        values: omitBlankSecrets(connectionType, values),
+        type: contract.name,
+        values: omitBlankSecrets(contract, values),
         existingSecret: credentialsMode === 'existing' ? existingSecret : undefined,
       })
       .then(() => {
@@ -270,7 +271,7 @@ function InlineConnectionCreate({
 
   return (
     <Dialog
-      header={`New ${connectionType.displayName} connection`}
+      header={`New ${contract.displayName} connection`}
       visible={visible}
       modal
       draggable={false}
@@ -314,7 +315,7 @@ function InlineConnectionCreate({
         </div>
         <DynamicSchemaForm schema={schema} onParametersChange={setValues} />
         <CredentialsBlock
-          connectionType={connectionType}
+          contract={contract}
           mode={credentialsMode}
           onModeChange={setCredentialsMode}
           values={values}

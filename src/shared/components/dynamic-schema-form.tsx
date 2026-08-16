@@ -35,7 +35,7 @@ export interface SchemaField {
   items?: any;
   additionalProperties?: any;
   properties?: any;
-  'x-kubocd-connection-ref'?: { connectionType: string };
+  'x-kubocd-connection-ref'?: { contract: string };
   'x-ui-order'?: number;
   'x-ui-group'?: string;
   'x-ui-widget'?: string;
@@ -242,13 +242,13 @@ function ObjectListField({
   useEffect(() => {
     if (!projectId) return;
     const contracts = columns
-      .map((c) => props[c]?.['x-kubocd-connection-ref']?.connectionType)
+      .map((c) => props[c]?.['x-kubocd-connection-ref']?.contract)
       .filter((i): i is string => !!i);
-    [...new Set(contracts)].forEach((connectionType) => {
+    [...new Set(contracts)].forEach((contract) => {
       connectionApi
-        .selectable(projectId, connectionType)
-        .then((found) => setConnections((c) => ({ ...c, [connectionType]: found })))
-        .catch(() => setConnections((c) => ({ ...c, [connectionType]: [] })));
+        .selectable(projectId, contract)
+        .then((found) => setConnections((c) => ({ ...c, [contract]: found })))
+        .catch(() => setConnections((c) => ({ ...c, [contract]: [] })));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, field.name]);
@@ -261,7 +261,7 @@ function ObjectListField({
       {value.map((row, index) => (
         <div key={index} className="flex items-end gap-2">
           {columns.map((column) => {
-            const contract = props[column]?.['x-kubocd-connection-ref']?.connectionType;
+            const contract = props[column]?.['x-kubocd-connection-ref']?.contract;
             return (
               <div key={column} className="flex-1">
                 <label className="text-[12px] text-fg-secondary">{formatLabel(column)}</label>

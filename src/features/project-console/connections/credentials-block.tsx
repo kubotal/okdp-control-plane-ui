@@ -1,7 +1,7 @@
 import { SelectButton } from 'primereact/selectbutton';
 import { InputText } from 'primereact/inputtext';
 import { Password } from 'primereact/password';
-import type { ConnectionTypeDescriptor, ConnectionValues } from '../../../core/api/connection-api';
+import type { ContractDescriptor, ConnectionValues } from '../../../core/api/connection-api';
 
 /** Where the credentials of a connection come from. */
 export type CredentialsMode = 'enter' | 'existing';
@@ -22,7 +22,7 @@ const MODES = [
  * write a second copy of it.
  */
 export function CredentialsBlock({
-  connectionType,
+  contract,
   mode,
   onModeChange,
   values,
@@ -31,7 +31,7 @@ export function CredentialsBlock({
   onExistingSecretChange,
   editMode = false,
 }: {
-  connectionType: ConnectionTypeDescriptor;
+  contract: ContractDescriptor;
   mode: CredentialsMode;
   onModeChange: (mode: CredentialsMode) => void;
   values: ConnectionValues;
@@ -40,7 +40,7 @@ export function CredentialsBlock({
   onExistingSecretChange: (name: string) => void;
   editMode?: boolean;
 }) {
-  const credentialFields = connectionType.fields.filter((field) => field.secret);
+  const credentialFields = contract.fields.filter((field) => field.secret);
   if (credentialFields.length === 0) {
     return null;
   }

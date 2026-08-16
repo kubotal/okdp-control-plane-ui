@@ -1,14 +1,14 @@
-import type { ConnectionTypeDescriptor, ConnectionValues } from '../../../core/api/connection-api';
+import type { ContractDescriptor, ConnectionValues } from '../../../core/api/connection-api';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Adapts a connection type descriptor to the schema shape DynamicSchemaForm
+/** Adapts a contract descriptor to the schema shape DynamicSchemaForm
  *  consumes, so connection forms look and behave like the service deployment
  *  forms instead of introducing a second form generator.
  *
  *  Credentials are deliberately absent: CredentialsBlock renders them, because
  *  they go to a Secret rather than to the connection. */
-export function toDynamicSchema(type: ConnectionTypeDescriptor): any {
+export function toDynamicSchema(type: ContractDescriptor): any {
   const properties: Record<string, any> = {};
 
   type.fields.forEach((field, index) => {
@@ -54,7 +54,7 @@ export function toDynamicSchema(type: ConnectionTypeDescriptor): any {
  *  DynamicSchemaForm reports format errors but does not enforce required.
  *  Credentials are checked by the dialog, which knows whether they are typed in
  *  or taken from an existing Secret. */
-export function missingRequiredFields(type: ConnectionTypeDescriptor, values: ConnectionValues): string[] {
+export function missingRequiredFields(type: ContractDescriptor, values: ConnectionValues): string[] {
   return type.fields
     .filter((field) => field.required && !field.derived && !field.secret)
     // A field the chosen engine rules out is not on screen, so demanding it
@@ -69,7 +69,7 @@ export function missingRequiredFields(type: ConnectionTypeDescriptor, values: Co
 
 /** Drops the credentials left blank so that an edit does not overwrite the
  *  stored ones with empty strings. */
-export function omitBlankSecrets(type: ConnectionTypeDescriptor, values: ConnectionValues): ConnectionValues {
+export function omitBlankSecrets(type: ContractDescriptor, values: ConnectionValues): ConnectionValues {
   const secretFields = new Set(type.fields.filter((f) => f.secret).map((f) => f.name));
   const result: ConnectionValues = {};
 

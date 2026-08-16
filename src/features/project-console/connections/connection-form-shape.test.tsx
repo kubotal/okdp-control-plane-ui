@@ -1,16 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type { ConnectionTypeDescriptor } from '../../../core/api/connection-api';
+import type { ContractDescriptor } from '../../../core/api/connection-api';
 import { DynamicSchemaForm } from '../../../shared/components/dynamic-schema-form';
 import { toDynamicSchema } from './connection-schema';
 
 /**
  * The database-server descriptor as the server actually ships it, copied from
- * GET /api/connection-types. The unit tests around toDynamicSchema use a small
+ * GET /api/contracts. The unit tests around toDynamicSchema use a small
  * fixture; this one checks what a user really sees, so a change to the shipped
  * descriptor that breaks the form fails here rather than on the sandbox.
  */
-const DATABASE_SERVER: ConnectionTypeDescriptor = {
+const DATABASE_SERVER: ContractDescriptor = {
   name: 'database-server',
   displayName: 'SQL database',
   description: 'SQL database server. The engine tells consuming packages how to address it.',

@@ -16,7 +16,7 @@ import {
   type ConnectionConsumer,
   type ConnectionRequest,
   type ConnectionTestResult,
-  type ConnectionTypeDescriptor,
+  type ContractDescriptor,
   type ConnectionValues,
 } from '../../../core/api/connection-api';
 import { apiErrorMessage, formatMediumDateTime } from '../services/service-utils';
@@ -98,14 +98,14 @@ export function ExternalConnectionList() {
     connectionApi
       .catalog()
       .then(setCatalog)
-      .catch(() => showError('Failed to load the connection types'));
+      .catch(() => showError('Failed to load the contracts'));
   }, [showError]);
 
   const creatableTypes = useMemo(
     () => (catalog?.types ?? []).filter((type) => type.external),
     [catalog],
   );
-  const selectedType: ConnectionTypeDescriptor | undefined = useMemo(
+  const selectedType: ContractDescriptor | undefined = useMemo(
     () => creatableTypes.find((type) => type.name === typeName),
     [creatableTypes, typeName],
   );
@@ -417,9 +417,9 @@ export function ExternalConnectionList() {
           </div>
 
           <div className="field">
-            <label htmlFor="connectionType">Type</label>
+            <label htmlFor="contract">Type</label>
             <Dropdown
-              inputId="connectionType"
+              inputId="contract"
               value={typeName}
               disabled={editMode}
               options={creatableTypes.map((type) => ({
@@ -464,7 +464,7 @@ export function ExternalConnectionList() {
 
           {selectedType && (
             <CredentialsBlock
-              connectionType={selectedType}
+              contract={selectedType}
               mode={credentialsMode}
               onModeChange={setCredentialsMode}
               values={values}

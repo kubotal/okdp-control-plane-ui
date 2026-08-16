@@ -157,7 +157,7 @@ follow that pattern for new endpoints. Current clients:
 | `identity-api.ts` | `/api/v1/identity` users/groups CRUD (admin) |
 | `secret-store-api.ts` | per-project secret stores CRUD, connection test, status |
 | `external-secret-api.ts` | per-project external secrets CRUD, status |
-| `connection-api.ts` | connection type descriptors, per-project external connections CRUD + connectivity test, derived internal connections, and the same external CRUD + test at platform scope (admin) |
+| `connection-api.ts` | contract descriptors, per-project external connections CRUD + connectivity test, derived internal connections, and the same external CRUD + test at platform scope (admin) |
 | `sql-api.ts` | `execute(projectId, serviceName, query, maxRows?, signal?)` — POST `/api/projects/{id}/services/{name}/sql` to the control plane's SQL proxy |
 
 `src/core/api/ui-cache.ts` is a deliberate in-memory, per-tab,

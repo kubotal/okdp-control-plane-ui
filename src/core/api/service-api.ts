@@ -17,7 +17,7 @@ const seg = encodeURIComponent;
  *  offers a choice for each entry carrying a parameter. */
 export interface PackageInput {
   alias: string;
-  connectionType: string;
+  contract: string;
   /** Package parameter carrying the chosen connection name. Absent when the
    *  package binds some other way — nothing to choose then. */
   parameter?: string;

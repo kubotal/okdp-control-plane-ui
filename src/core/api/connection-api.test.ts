@@ -20,13 +20,13 @@ describe('connectionApi.selectable', () => {
 
   // Pins the query parameter name against the server contract. The picker test
   // mocks this method, so it would not notice the wire name drifting.
-  it('names the query parameter connectionType', () => {
+  it('names the query parameter contract', () => {
     connectionApi.selectable('demo', 'database-server');
-    expect(http.getList).toHaveBeenCalledWith(`${PROJECT}/selectable?connectionType=database-server`);
+    expect(http.getList).toHaveBeenCalledWith(`${PROJECT}/selectable?contract=database-server`);
   });
 
-  it('encodes a connection type carrying URL-unsafe characters', () => {
+  it('encodes a contract carrying URL-unsafe characters', () => {
     connectionApi.selectable('demo', 'object store/s3');
-    expect(http.getList).toHaveBeenCalledWith(`${PROJECT}/selectable?connectionType=object%20store%2Fs3`);
+    expect(http.getList).toHaveBeenCalledWith(`${PROJECT}/selectable?contract=object%20store%2Fs3`);
   });
 });

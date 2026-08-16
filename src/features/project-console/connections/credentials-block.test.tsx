@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { ConnectionTypeDescriptor } from '../../../core/api/connection-api';
+import type { ContractDescriptor } from '../../../core/api/connection-api';
 import { CredentialsBlock, type CredentialsMode } from './credentials-block';
 
-const DATABASE_SERVER: ConnectionTypeDescriptor = {
+const DATABASE_SERVER: ContractDescriptor = {
   name: 'database-server',
   displayName: 'SQL database',
   description: 'SQL database server.',
@@ -23,7 +23,7 @@ function renderBlock(mode: CredentialsMode = 'enter', overrides = {}) {
   const onExistingSecretChange = vi.fn();
   const result = render(
     <CredentialsBlock
-      connectionType={DATABASE_SERVER}
+      contract={DATABASE_SERVER}
       mode={mode}
       onModeChange={onModeChange}
       values={{}}
@@ -87,7 +87,7 @@ describe('CredentialsBlock', () => {
   it('renders nothing for a contract that carries no credentials', () => {
     const { container } = render(
       <CredentialsBlock
-        connectionType={{ ...DATABASE_SERVER, fields: [DATABASE_SERVER.fields[0]] }}
+        contract={{ ...DATABASE_SERVER, fields: [DATABASE_SERVER.fields[0]] }}
         mode="enter"
         onModeChange={vi.fn()}
         values={{}}

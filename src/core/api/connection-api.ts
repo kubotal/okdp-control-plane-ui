@@ -1,10 +1,10 @@
 import { environment } from '../../config/environment';
 import { http } from './http';
 
-// --- Connection type descriptors ---
+// --- Contract descriptors ---
 // The server owns these: one descriptor drives the form below, the server-side
 // validation and the recognition of a deployed service as a provider. Adding a
-// connection type therefore needs no change here.
+// contract therefore needs no change here.
 
 export type ConnectionFieldType = 'string' | 'number' | 'boolean' | 'enum';
 
@@ -34,23 +34,23 @@ export interface ConnectionField {
   derived?: { from: string; map: Record<string, string> };
 }
 
-export interface ConnectionTypeDescriptor {
-  /** Also the KuboCD ConnectionType this descriptor produces: one type, one contract. A
-   *  package asking for `database-server` is answered by the type of the same
-   *  name, whose engine field says whether it is PostgreSQL or MySQL. */
+export interface ContractDescriptor {
+  /** Also the KuboCD Contract this descriptor produces. A package asking for
+   *  `database-server` is answered by the contract of the same name, whose
+   *  engine field says whether it is PostgreSQL or MySQL. */
   name: string;
   displayName: string;
   description: string;
   icon: string;
   category: string;
-  /** Whether a user may declare this type by hand. Types that only ever come
-   *  from a deployed service (Trino, ...) appear in the internal tab only. */
+  /** Whether a user may declare this contract by hand. Contracts that only ever
+   *  come from a deployed service (Trino, ...) appear in the internal tab only. */
   external: boolean;
   fields: ConnectionField[];
 }
 
 export interface ConnectionCatalog {
-  types: ConnectionTypeDescriptor[];
+  types: ContractDescriptor[];
   /** False while the KuboCD connection CRDs are not installed: external
    *  connections cannot be persisted yet, internal ones still work. */
   crdAvailable: boolean;
@@ -216,7 +216,7 @@ function endpoints(baseUrl: string) {
 
 export const connectionApi = {
   catalog(): Promise<ConnectionCatalog> {
-    return http.get<ConnectionCatalog>(`${environment.apiBaseUrl}/api/connection-types`);
+    return http.get<ConnectionCatalog>(`${environment.apiBaseUrl}/api/contracts`);
   },
 
   project(projectId: string) {
@@ -229,9 +229,9 @@ export const connectionApi = {
   },
 
   /** Connections a deployment form can offer for an input of that contract. */
-  selectable(projectId: string, connectionType: string): Promise<SelectableConnection[]> {
+  selectable(projectId: string, contract: string): Promise<SelectableConnection[]> {
     return http.getList<SelectableConnection>(
-      `${projectUrl(projectId)}/selectable?connectionType=${seg(connectionType)}`,
+      `${projectUrl(projectId)}/selectable?contract=${seg(contract)}`,
     );
   },
 
