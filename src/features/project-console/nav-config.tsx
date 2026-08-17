@@ -100,6 +100,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     items: [
       { segment: 'polaris', icon: 'pi pi-table', brand: siteApachepolaris, label: 'Polaris' },
       { segment: 'trino', icon: 'pi pi-bolt', brand: siTrino, label: 'Trino' },
+      { segment: 'hive-metastore', icon: 'pi pi-table', label: 'Hive Metastore' },
     ],
   },
   {

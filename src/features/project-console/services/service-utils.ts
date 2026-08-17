@@ -45,6 +45,7 @@ export const SERVICE_AREAS: Record<string, ServiceArea> = {
   polaris: { label: 'Polaris', basePath: ['polaris'] },
   superset: { label: 'Superset', basePath: ['superset'] },
   airflow: { label: 'Airflow', basePath: ['airflow'] },
+  'hive-metastore': { label: 'Hive Metastore', basePath: ['hive-metastore'] },
 };
 
 /** Breadcrumb back-link label for a service name. */
