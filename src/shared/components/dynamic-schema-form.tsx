@@ -455,16 +455,24 @@ function validateField(field: SchemaField, value: unknown): string {
   if (!K8S_QUANTITY_RE.test(v)) {
     return `Invalid Kubernetes quantity. Use a number with an optional suffix (e.g. "500Mi", "2Gi", "500m", "1").`;
   }
-  // A bare digit means BYTES for memory or CORES for CPU — almost never
-  // what the user wants. "1" for memory = 1 byte, "1" for CPU = 1 core.
-  // Catch the ambiguous case and nudge towards an explicit suffix.
+  return '';
+}
+
+// A bare digit is a VALID quantity (bytes for memory, cores for CPU) but is
+// often a unit slip, and schema defaults such as "1" core are legitimate:
+// this nudges without blocking the deploy.
+function warnField(field: SchemaField, value: unknown): string {
+  if (value === undefined || value === null || value === '') return '';
+  if (!isQuantityField(field)) return '';
+  const v = String(value).trim();
+  if (!K8S_QUANTITY_RE.test(v)) return '';
   if (/^[0-9]+(\.[0-9]+)?$/.test(v)) {
     const lower = field.name.toLowerCase();
     if (lower.includes('memory') || lower.includes('mem')) {
-      return `"${v}" would be interpreted as ${v} byte(s). Did you mean "${v}Mi" or "${v}Gi"?`;
+      return `"${v}" is read as ${v} byte(s). Did you mean "${v}Mi" or "${v}Gi"?`;
     }
     if (lower.includes('cpu')) {
-      return `"${v}" would be interpreted as ${v} core(s). Add an "m" suffix for milli-cores if that is not intended.`;
+      return `"${v}" is read as ${v} core(s). Add an "m" suffix for milli-cores if that is not intended.`;
     }
   }
   return '';
@@ -513,6 +521,16 @@ export function DynamicSchemaForm({
       if (msg) errors[field.name] = msg;
     }
     return errors;
+  }, [fields, values]);
+
+  const fieldWarnings = useMemo(() => {
+    const warnings: Record<string, string> = {};
+    for (const field of fields) {
+      if (!isVisible(field, values)) continue;
+      const msg = warnField(field, values[field.name]);
+      if (msg) warnings[field.name] = msg;
+    }
+    return warnings;
   }, [fields, values]);
 
   // Emit on every change, including initialization (legacy behavior).
@@ -705,6 +723,12 @@ export function DynamicSchemaForm({
                 <small className="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-danger">
                   <i className="pi pi-exclamation-triangle text-[13px]"></i>
                   {fieldErrors[field.name]}
+                </small>
+              )}
+              {!fieldErrors[field.name] && fieldWarnings[field.name] && (
+                <small className="mt-1.5 flex items-center gap-1.5 text-[12px] font-medium text-amber-600">
+                  <i className="pi pi-exclamation-triangle text-[13px]"></i>
+                  {fieldWarnings[field.name]}
                 </small>
               )}
               {field.description && <small className="field-help">{field.description}</small>}
