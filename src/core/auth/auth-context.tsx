@@ -40,9 +40,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function createUserManager(): UserManager {
   if (!environment.oidc.authority) {
     throw new Error(
-      "oidc.authority n'est pas configuree. L'entrypoint du conteneur ecrit /config.js " +
-        'depuis les values du chart: renseignez oidc.authority. La console echoue ici ' +
-        "plutot que de deriver vers une autorite qui n'est pas la votre.",
+      'oidc.authority is not configured. The container entrypoint writes /config.js ' +
+        'from the chart values: set oidc.authority. The console fails here rather ' +
+        'than drifting toward an authority that is not yours.',
     );
   }
 
