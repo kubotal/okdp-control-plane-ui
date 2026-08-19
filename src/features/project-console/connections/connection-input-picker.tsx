@@ -80,7 +80,9 @@ export function ConnectionInputPicker({
       .catalog()
       .then((catalog) => {
         const found = catalog.types.find((type) => type.name === input.contract);
-        setCreatableType(found && found.external ? found : null);
+        // Without the connection CRDs nothing can be persisted, so offering the
+        // creation form here would end on a 501 the picker cannot explain.
+        setCreatableType(found && found.external && catalog.crdAvailable ? found : null);
       })
       .catch(() => setCreatableType(null));
   }, [reload, input.contract]);
