@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DynamicSchemaForm } from './dynamic-schema-form';
 
 const schema = {
@@ -100,5 +100,39 @@ describe('DynamicSchemaForm', () => {
 
     expect(onValidityChange).toHaveBeenLastCalledWith(false);
     expect(screen.getByText(/Invalid Kubernetes quantity/)).toBeTruthy();
+  });
+});
+
+// A row being typed is not yet a valid map entry: it may have no key, or a key
+// that duplicates another until the typing is finished. Deriving the rows from
+// the emitted object made two fresh rows share the empty key and collapse.
+describe('the key-value widget', () => {
+  const mapping = { properties: { roleMapping: { type: 'object', properties: {} } } };
+
+  it('keeps two fresh rows apart', () => {
+    render(<DynamicSchemaForm schema={mapping} onParametersChange={vi.fn()} />);
+
+    const add = screen.getByRole('button', { name: /Add an entry/ });
+    fireEvent.click(add);
+    fireEvent.click(add);
+
+    expect(screen.getAllByPlaceholderText('OIDC role')).toHaveLength(2);
+  });
+
+  it('emits only the rows that carry a key', () => {
+    const onParametersChange = vi.fn();
+    render(<DynamicSchemaForm schema={mapping} onParametersChange={onParametersChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Add an entry/ }));
+    fireEvent.change(screen.getAllByPlaceholderText('OIDC role')[0], {
+      target: { value: 'data-team' },
+    });
+    fireEvent.change(screen.getAllByPlaceholderText(/granted roles/)[0], {
+      target: { value: 'reader' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Add an entry/ }));
+
+    const last = onParametersChange.mock.calls.at(-1)![0];
+    expect(last.roleMapping).toEqual({ 'data-team': 'reader' });
   });
 });

@@ -97,7 +97,10 @@ function JsonField({
   onChange: (parsed: unknown) => void;
 }) {
   const serialize = (v: unknown) =>
-    v === undefined || v === null || (typeof v === 'object' && Object.keys(v).length === 0)
+    v === undefined ||
+    v === null ||
+    v === '' ||
+    (typeof v === 'object' && Object.keys(v).length === 0)
       ? ''
       : JSON.stringify(v, null, 2);
 
@@ -157,23 +160,38 @@ function KeyValueField({
   value: Record<string, unknown>;
   onChange: (next: Record<string, unknown>) => void;
 }) {
-  const rows = Object.entries(value);
   const asText = (v: unknown) => (Array.isArray(v) ? v.join(', ') : String(v ?? ''));
   const asValue = (text: string, previous: unknown) => {
     const parts = text.split(',').map((p) => p.trim()).filter(Boolean);
     return Array.isArray(previous) || parts.length > 1 ? parts : text.trim();
   };
 
-  const replace = (index: number, key: string, raw: string) => {
-    const next: Record<string, unknown> = {};
-    rows.forEach(([k, v], i) => {
-      if (i === index) {
-        if (key) next[key] = asValue(raw, v);
-      } else {
-        next[k] = v;
-      }
+  // The rows are held here rather than derived from the object, because a row
+  // being typed is not yet a valid entry: a blank key, or a key that duplicates
+  // another for as long as it takes to finish typing, has nowhere to live in an
+  // object and used to make two rows collapse into one.
+  const [rows, setRows] = useState<[string, unknown][]>(() => Object.entries(value));
+  const emittedRef = useRef(value);
+
+  useEffect(() => {
+    if (value !== emittedRef.current) {
+      setRows(Object.entries(value));
+      emittedRef.current = value;
+    }
+  }, [value]);
+
+  const emit = (next: [string, unknown][]) => {
+    setRows(next);
+    const object: Record<string, unknown> = {};
+    next.forEach(([k, v]) => {
+      if (k) object[k] = v;
     });
-    onChange(next);
+    emittedRef.current = object;
+    onChange(object);
+  };
+
+  const replace = (index: number, key: string, raw: string) => {
+    emit(rows.map(([k, v], i) => (i === index ? [key, asValue(raw, v)] : [k, v])));
   };
 
   return (
@@ -197,12 +215,8 @@ function KeyValueField({
             type="button"
             icon="pi pi-times"
             text
-            aria-label={`Retirer ${key}`}
-            onClick={() => {
-              const next = { ...value };
-              delete next[key];
-              onChange(next);
-            }}
+            aria-label={`Remove ${key || 'the empty entry'}`}
+            onClick={() => emit(rows.filter((_, i) => i !== index))}
           />
         </div>
       ))}
@@ -212,7 +226,7 @@ function KeyValueField({
           label="Add an entry"
           icon="pi pi-plus"
           text
-          onClick={() => onChange({ ...value, '': '' })}
+          onClick={() => emit([...rows, ['', '']])}
         />
       </div>
     </div>
