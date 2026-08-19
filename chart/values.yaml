@@ -28,6 +28,9 @@ oidc:
 # resolved for a provider that nests them.
 identity:
   rolesClaim: groups
+  # The role that opens the administration pages. A platform whose admins carry
+  # another role name sets it here, there is no second name checked as a
+  # fallback.
   adminRole: platform_admin
 
 service:
