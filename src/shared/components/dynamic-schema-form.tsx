@@ -302,7 +302,7 @@ function ObjectListField({
       <div>
         <Button
           type="button"
-          label="Ajouter"
+          label="Add"
           icon="pi pi-plus"
           text
           onClick={() => onChange([...value, {}])}
