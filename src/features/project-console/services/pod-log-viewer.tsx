@@ -21,6 +21,7 @@ export function PodLogViewer({ projectId, serviceName, pods, initialPodName }: P
 
   const [lines, setLines] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [streamError, setStreamError] = useState('');
   const [selectedPodName, setSelectedPodName] = useState('');
   const [selectedContainer, setSelectedContainer] = useState('');
   const [followMode, setFollowMode] = useState(true);
@@ -65,6 +66,7 @@ export function PodLogViewer({ projectId, serviceName, pods, initialPodName }: P
 
     setLoading(true);
     setLines([]);
+    setStreamError('');
 
     if (followMode) {
       return serviceApi.streamPodLogs(
@@ -83,6 +85,10 @@ export function PodLogViewer({ projectId, serviceName, pods, initialPodName }: P
             setLoading(false);
           },
           complete: () => setLoading(false),
+          error: (err) => {
+            setStreamError(err instanceof Error ? err.message : 'log stream interrupted');
+            setLoading(false);
+          },
         },
         selectedContainer || undefined,
         200,
@@ -191,6 +197,12 @@ export function PodLogViewer({ projectId, serviceName, pods, initialPodName }: P
         ref={logContainerRef}
         onScroll={onScroll}
       >
+        {streamError ? (
+          <div className="log-block log-muted sticky top-0 z-10 flex items-center justify-center gap-2 p-4 text-[13px]">
+            <i className="pi pi-exclamation-triangle text-[16px]"></i>
+            {streamError}. The logs above may be incomplete.
+          </div>
+        ) : null}
         {loading ? (
           <div className="log-muted flex items-center justify-center gap-2 p-14 text-[13px]">
             <i className="pi pi-spin pi-spinner text-[16px]"></i>
