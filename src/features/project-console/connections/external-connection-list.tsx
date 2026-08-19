@@ -66,7 +66,10 @@ export function ExternalConnectionList() {
   const [deleteTarget, setDeleteTarget] = useState<Connection | null>(null);
   // Who consumes the connection about to be deleted. Loaded when the dialog
   // opens: the answer only exists on the cluster, and it changes.
-  const [consumers, setConsumers] = useState<ConnectionConsumer[] | null>(null);
+  // Three states, not two: still asking, could not ask, and the answer. The
+  // first two used to share `null`, so a dialog opened during the lookup
+  // announced a failed check that had not failed yet.
+  const [consumers, setConsumers] = useState<ConnectionConsumer[] | 'loading' | null>(null);
 
   // Dialog state
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -243,7 +246,7 @@ export function ExternalConnectionList() {
 
   const askDelete = (connection: Connection) => {
     setDeleteTarget(connection);
-    setConsumers(null);
+    setConsumers('loading');
     connectionApi
       .consumers(projectId, connection.name)
       .then(setConsumers)
@@ -512,7 +515,9 @@ export function ExternalConnectionList() {
             {/* The credentials Secret goes with the connection, so the pods
                 mounting it fail at their next restart, not right away. Saying
                 which services those are is the whole point of this dialog. */}
-            {consumers === null ? (
+            {consumers === 'loading' ? (
+              <span>Checking which services use this connection...</span>
+            ) : consumers === null ? (
               <span>
                 Could not check which services use this connection. Deleting it removes its
                 credentials secret, and any service mounting that secret will fail to restart.
