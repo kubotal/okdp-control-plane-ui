@@ -142,7 +142,7 @@ function JsonField({
         }}
         onChange={(e) => commit(e.target.value)}
       />
-      {badJson && <small className="field-hint err">JSON invalide, la valeur n\'est pas enregistrée.</small>}
+      {badJson && <small className="field-hint err">Invalid JSON, the value is not saved.</small>}
     </>
   );
 }
@@ -183,14 +183,14 @@ function KeyValueField({
           <InputText
             className="w-full mono"
             value={key}
-            placeholder="rôle OIDC"
+            placeholder="OIDC role"
             onChange={(e) => replace(index, e.target.value, asText(val))}
           />
           <span className="text-fg-secondary">&rarr;</span>
           <InputText
             className="w-full mono"
             value={asText(val)}
-            placeholder="rôles accordés, séparés par des virgules"
+            placeholder="granted roles, comma-separated"
             onChange={(e) => replace(index, key, e.target.value)}
           />
           <Button
@@ -209,7 +209,7 @@ function KeyValueField({
       <div>
         <Button
           type="button"
-          label="Ajouter une entrée"
+          label="Add an entry"
           icon="pi pi-plus"
           text
           onClick={() => onChange({ ...value, '': '' })}

@@ -153,9 +153,6 @@ The published chart is the normal path:
 helm install okdp-control-plane-ui oci://quay.io/okdp/charts/okdp-control-plane-ui --version <X>
 ```
 
-> The chart was renamed from `okdp-ui` to match this repository. Only `okdp-ui` is
-> published on Quay today, so this path resolves once the rename lands upstream.
-> Until then, install from `chart/` as shown below.
 
 The examples below install from `chart/` in this checkout, which is what a
 contributor does while changing the chart itself.

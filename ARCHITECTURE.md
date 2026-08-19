@@ -399,8 +399,8 @@ under `src/core/`, reusable presentational pieces under
   the control plane enforces auth on stream endpoints).
 - **OIDC config is read at startup, not baked into the bundle.** The container
   entrypoint writes `/config.js`, which `index.html` loads before the bundle:
-  authority, client id, and since the identity lot the claim carrying the roles
-  and the role granting administration. One image therefore runs against any
+  authority, client id, the claim carrying the roles, and the role granting
+  administration. One image therefore runs against any
   cluster. The values in `src/config/environment.ts` are only the fallback for
   `npm run dev`, and point at okdp-sandbox.
 - **Production API base path.** `environment.apiBaseUrl` is `/api` in
