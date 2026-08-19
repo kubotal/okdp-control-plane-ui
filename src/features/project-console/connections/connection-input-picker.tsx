@@ -214,6 +214,9 @@ function InlineConnectionCreate({
 }) {
   const [name, setName] = useState('');
   const [values, setValues] = useState<ConnectionValues>({});
+  // Credentials are held apart from the schema values: the form owns the
+  // latter and re-emits them whole, without the secret fields it never sees.
+  const [credentials, setCredentials] = useState<ConnectionValues>({});
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
@@ -229,7 +232,7 @@ function InlineConnectionCreate({
       ? existingSecret
         ? []
         : ['Secret name']
-      : credentialFields.filter((f) => f.required && !values[f.name]).map((f) => f.label);
+      : credentialFields.filter((f) => f.required && !credentials[f.name]).map((f) => f.label);
   const missingFields = [...missingRequiredFields(contract, values), ...missingCredentials];
   const formValid = !!name && !nameError && missingFields.length === 0;
 
@@ -239,7 +242,7 @@ function InlineConnectionCreate({
     setTesting(true);
     setTestResult(null);
     api
-      .test({ type: contract.name, values: omitBlankSecrets(contract, values) })
+      .test({ type: contract.name, values: omitBlankSecrets(contract, { ...values, ...credentials }) })
       .then(setTestResult)
       .catch(() => setTestResult({ success: false, message: 'Test request failed', durationMs: 0 }))
       .finally(() => setTesting(false));
@@ -252,12 +255,13 @@ function InlineConnectionCreate({
       .create({
         name,
         type: contract.name,
-        values: omitBlankSecrets(contract, values),
+        values: omitBlankSecrets(contract, { ...values, ...credentials }),
         existingSecret: credentialsMode === 'existing' ? existingSecret : undefined,
       })
       .then(() => {
         setSaving(false);
         setName('');
+        setCredentials({});
         setTestResult(null);
         onCreated(name);
       })
@@ -318,8 +322,8 @@ function InlineConnectionCreate({
           contract={contract}
           mode={credentialsMode}
           onModeChange={setCredentialsMode}
-          values={values}
-          onValueChange={(field, value) => setValues((v) => ({ ...v, [field]: value }))}
+          values={credentials}
+          onValueChange={(field, value) => setCredentials((c) => ({ ...c, [field]: value }))}
           existingSecret={existingSecret}
           onExistingSecretChange={setExistingSecret}
         />

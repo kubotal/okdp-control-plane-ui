@@ -9,13 +9,14 @@ const list = vi.fn();
 const create = vi.fn();
 const test = vi.fn();
 const remove = vi.fn();
+const update = vi.fn();
 
 vi.mock('../../../core/api/connection-api', () => ({
   connectionApi: {
     catalog: () => catalog(),
     consumers: (projectId: string, name: string) => consumers(projectId, name),
-    project: () => ({ list, create, test, delete: remove, update: vi.fn() }),
-    platform: () => ({ list, create, test, delete: remove, update: vi.fn() }),
+    project: () => ({ list, create, test, delete: remove, update }),
+    platform: () => ({ list, create, test, delete: remove, update }),
   },
 }));
 // Decouples the delete dialog from the localStorage-backed preferences store.
@@ -94,6 +95,7 @@ describe('ExternalConnectionList', () => {
     list.mockResolvedValue([WAREHOUSE]);
     create.mockResolvedValue(WAREHOUSE);
     remove.mockResolvedValue(undefined);
+    update.mockResolvedValue(WAREHOUSE);
     consumers.mockResolvedValue([]);
   });
 
@@ -227,5 +229,54 @@ describe('ExternalConnectionList', () => {
     fireEvent.click(await screen.findByText('Delete'));
 
     expect(await screen.findByText(/Could not check which services use/)).toBeInTheDocument();
+  });
+});
+
+// Credentials and schema values have different destinations, a Secret and
+// spec.values, and the schema form only owns the second: it re-emits them
+// whole, without the credential fields it never receives. Sharing one state
+// between the two made any later edit blank the typed-in password.
+describe('credentials survive editing another field', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    catalog.mockResolvedValue(CATALOG);
+    list.mockResolvedValue([WAREHOUSE]);
+    create.mockResolvedValue(WAREHOUSE);
+    update.mockResolvedValue(WAREHOUSE);
+    consumers.mockResolvedValue([]);
+  });
+
+  it('keeps a password typed before the other fields', async () => {
+    renderList();
+    await screen.findByText('warehouse');
+
+    fireEvent.click(screen.getByRole('button', { name: /Add connection/ }));
+    await waitFor(() => expect(screen.getByLabelText('Connection name')).toBeInTheDocument());
+
+    // The credential first, then the schema field: the order that used to lose it.
+    fireEvent.change(screen.getByLabelText(/^Password\b/), { target: { value: 's3cret' } });
+    fireEvent.change(screen.getByLabelText('Connection name'), { target: { value: 'warehouse-2' } });
+    fireEvent.change(screen.getByLabelText(/^Host\b/), { target: { value: 'db.example.com' } });
+
+    expect(screen.getByLabelText(/^Password\b/)).toHaveValue('s3cret');
+    expect(screen.queryByText(/Still to fill in/)).not.toBeInTheDocument();
+  });
+
+  it('sends the rotated password when another field is corrected after it', async () => {
+    renderList();
+    await screen.findByText('warehouse');
+
+    fireEvent.click(screen.getByLabelText('Actions for warehouse'));
+    fireEvent.click(await screen.findByText('Edit'));
+    await waitFor(() => expect(screen.getByLabelText(/^Password\b/)).toBeInTheDocument());
+
+    fireEvent.change(screen.getByLabelText(/^Password\b/), { target: { value: 'rotated' } });
+    fireEvent.change(screen.getByLabelText(/^Host\b/), { target: { value: 'db2.example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    const [, request] = update.mock.calls[0];
+    expect(request.values.password).toBe('rotated');
+    expect(request.values.host).toBe('db2.example.com');
   });
 });

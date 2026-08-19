@@ -69,6 +69,11 @@ export function ExternalConnectionList() {
   const [description, setDescription] = useState('');
   const [typeName, setTypeName] = useState('');
   const [values, setValues] = useState<ConnectionValues>({});
+  // Credentials live in their own state because they have their own
+  // destination: a Secret, not spec.values. The schema form does not know
+  // them (toDynamicSchema drops the secret fields) and re-emits the whole
+  // set of values it owns, which would wipe them on the next keystroke.
+  const [credentials, setCredentials] = useState<ConnectionValues>({});
   // Values the form starts from. Kept apart from `values`, which the form owns
   // and streams back on every keystroke: feeding those back in as initial
   // values would restart the form's own initialisation effect on each change.
@@ -127,13 +132,13 @@ export function ExternalConnectionList() {
         : ['Secret name']
       : editMode
         ? []
-        : credentialFields.filter((f) => f.required && !values[f.name]).map((f) => f.label);
+        : credentialFields.filter((f) => f.required && !credentials[f.name]).map((f) => f.label);
   // Testing sends only what the form holds, the endpoint cannot read a Secret,
   // so credentials must be present even on an edit and even when the connection
   // points at an existing Secret.
   const missingToTest = [
     ...missingFields,
-    ...credentialFields.filter((f) => f.required && !values[f.name]).map((f) => f.label),
+    ...credentialFields.filter((f) => f.required && !credentials[f.name]).map((f) => f.label),
   ];
   const formValid =
     Boolean(selectedType) &&
@@ -149,6 +154,7 @@ export function ExternalConnectionList() {
     setTypeName(creatableTypes[0]?.name ?? '');
     setValues({});
     setInitialValues({});
+    setCredentials({});
     setTestResult(null);
     setCredentialsMode('enter');
     setExistingSecret('');
@@ -164,6 +170,7 @@ export function ExternalConnectionList() {
     // and are only written when the user types a new one.
     setValues({ ...connection.values });
     setInitialValues({ ...connection.values });
+    setCredentials({});
     setTestResult(null);
     // The server records which of the two it is, so the dialog reopens in the
     // right mode instead of guessing from the Secret's name.
@@ -178,7 +185,9 @@ export function ExternalConnectionList() {
     name,
     type: typeName,
     description: description || undefined,
-    values: selectedType ? omitBlankSecrets(selectedType, values) : values,
+    values: selectedType
+      ? omitBlankSecrets(selectedType, { ...values, ...credentials })
+      : { ...values, ...credentials },
     existingSecret: credentialsMode === 'existing' ? existingSecret : undefined,
   });
 
@@ -431,6 +440,7 @@ export function ExternalConnectionList() {
                 // The fields of the previous type do not apply to the new one.
                 setValues({});
                 setInitialValues({});
+                setCredentials({});
                 setTestResult(null);
               }}
               placeholder="Select a type"
@@ -467,8 +477,8 @@ export function ExternalConnectionList() {
               contract={selectedType}
               mode={credentialsMode}
               onModeChange={setCredentialsMode}
-              values={values}
-              onValueChange={(field, value) => setValues((v) => ({ ...v, [field]: value }))}
+              values={credentials}
+              onValueChange={(field, value) => setCredentials((c) => ({ ...c, [field]: value }))}
               existingSecret={existingSecret}
               onExistingSecretChange={setExistingSecret}
               editMode={editMode}
