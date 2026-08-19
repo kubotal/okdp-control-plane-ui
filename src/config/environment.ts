@@ -15,6 +15,14 @@ declare global {
 
 const runtime = (typeof window !== 'undefined' && window.__OKDP_CONFIG__) || {};
 
+// `npm run dev` serves no /config.js, so a source checkout reads the same
+// settings from a git-ignored .env.local. Vite inlines these at build time and
+// they are absent from a container image, where /config.js is authoritative.
+const fromEnv = {
+  authority: import.meta.env.VITE_OIDC_AUTHORITY as string | undefined,
+  clientId: import.meta.env.VITE_OIDC_CLIENT_ID as string | undefined,
+};
+
 interface OidcConfig {
   authority: string;
   clientId: string;
@@ -53,8 +61,8 @@ const development: Environment = {
     // oidc.authority enverrait sinon ses utilisateurs s'authentifier ailleurs.
     // La valeur vient de /config.js, ecrit par l'entrypoint depuis les values du
     // chart. Vide, la console le dit au demarrage plutot que de deriver.
-    authority: runtime.authority ?? '',
-    clientId: runtime.clientId || 'okdp-ui',
+    authority: runtime.authority || fromEnv.authority || '',
+    clientId: runtime.clientId || fromEnv.clientId || 'okdp-ui',
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
     scope: 'openid profile email groups offline_access',

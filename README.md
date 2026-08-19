@@ -94,6 +94,17 @@ The image ships Node, installs dependencies on create, and publishes port 4200.
 npm start
 ```
 
+The dev server serves no `/config.js`, so the OIDC settings come from a
+git-ignored `.env.local` at the repository root:
+
+```
+VITE_OIDC_AUTHORITY=https://keycloak.okdp.sandbox/realms/okdp
+VITE_OIDC_CLIENT_ID=okdp-ui
+```
+
+Without an authority the console says so on a configuration screen instead of
+signing you in to somebody else's issuer.
+
 Open `http://localhost:4200/`. The dev server reloads on source changes and
 redirects to the OIDC provider for login.
 

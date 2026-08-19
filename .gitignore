@@ -51,3 +51,4 @@ CLAUDE.md
 .agent/
 # TypeScript incremental build
 tsconfig.tsbuildinfo
+.env*.local

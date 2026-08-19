@@ -22,7 +22,7 @@ spec:
           # startup: one image, any cluster, whose issuer it cannot know when built.
           env:
             - name: OIDC_AUTHORITY
-              value: {{ .Values.oidc.authority | quote }}
+              value: {{ required "oidc.authority is required: the console has no issuer to authenticate against without it" .Values.oidc.authority | quote }}
             - name: OIDC_CLIENT_ID
               value: {{ .Values.oidc.clientId | quote }}
             - name: OIDC_ROLES_CLAIM

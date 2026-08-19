@@ -108,7 +108,28 @@ function toAuthState(user: User | null): Pick<AuthState, 'isAuthenticated' | 'pr
   };
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+/** Shown instead of the console when there is no authority to authenticate
+ *  against. Throwing here would leave the operator with a blank page and the
+ *  reason buried in the browser console. */
+function MissingAuthority() {
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif', maxWidth: '42rem' }}>
+      <h1 style={{ fontSize: '1.25rem' }}>The console is not configured</h1>
+      <p>
+        No OIDC authority was provided, so there is nowhere to sign in. The container entrypoint
+        writes <code>/config.js</code> from the chart values: set <code>oidc.authority</code>.
+      </p>
+      <p>
+        Running from a source checkout, put it in a <code>.env.local</code> file as{' '}
+        <code>VITE_OIDC_AUTHORITY</code>.
+      </p>
+    </div>
+  );
+}
+
+/** The provider proper. Only rendered once there is an authority to build a
+ *  UserManager from, so every hook below can count on it. */
+function AuthProviderInner({ children }: { children: ReactNode }) {
   const userManagerRef = useRef<UserManager | null>(null);
   if (!userManagerRef.current) {
     userManagerRef.current = createUserManager();
@@ -276,4 +297,11 @@ export function useAuth(): AuthContextValue {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return ctx;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  if (!environment.oidc.authority) {
+    return <MissingAuthority />;
+  }
+  return <AuthProviderInner>{children}</AuthProviderInner>;
 }
