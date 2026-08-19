@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { HttpError } from '../../../core/api/http';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Dropdown } from 'primereact/dropdown';
 import { Toast } from 'primereact/toast';
@@ -87,9 +88,11 @@ export default function ServiceDeployPage() {
         setPackageInputs(inputs.filter((input) => !!input.parameter));
         setInputsState('loaded');
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         setPackageInputs([]);
-        setInputsState('error');
+        // A package that declares no input answers 404: that is an empty list,
+        // not an unreadable one, and it must not hold the wizard back.
+        setInputsState(err instanceof HttpError && err.status === 404 ? 'loaded' : 'error');
       });
   }, []);
 
