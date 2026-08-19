@@ -36,11 +36,18 @@ import { k8sNameError } from '../../../shared/utils/k8s-names';
 import { DialogFooter } from '../../../shared/components/dialog-footer';
 import DeleteConfirmDialog from '../../../shared/components/delete-confirm-dialog';
 
+// The comparator decides whether the polled list replaces the one in hand, and
+// the edit dialog reads its values from that list: comparing only what the
+// table paints would reopen the dialog on values a previous edit replaced.
 const isConnectionChanged = (incoming: Connection, current: Connection) =>
   incoming.name !== current.name ||
   incoming.status !== current.status ||
   incoming.message !== current.message ||
-  incoming.description !== current.description;
+  incoming.description !== current.description ||
+  incoming.type !== current.type ||
+  JSON.stringify(incoming.values) !== JSON.stringify(current.values) ||
+  JSON.stringify(incoming.secretFields) !== JSON.stringify(current.secretFields) ||
+  JSON.stringify(incoming.credentialsSecret) !== JSON.stringify(current.credentialsSecret);
 
 /** Connections to resources living outside the platform, a corporate
  *  PostgreSQL or an S3 bucket, declared by the user and consumable by the
