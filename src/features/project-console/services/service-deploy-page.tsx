@@ -80,15 +80,22 @@ export default function ServiceDeployPage() {
   const [inputsState, setInputsState] = useState<'loading' | 'error' | 'loaded'>('loading');
   const [connectionChoices, setConnectionChoices] = useState<Record<string, string>>({});
 
+  // Each fetch carries a token: switching version fast would otherwise let a
+  // slow answer for the previous one land on top of the current inputs.
+  const inputsRequestRef = useRef(0);
+
   const loadInputs = useCallback((serviceName: string, tag: string) => {
+    const token = ++inputsRequestRef.current;
     setInputsState('loading');
     serviceApi
       .getServiceInputs(serviceName, tag)
       .then((inputs) => {
+        if (token !== inputsRequestRef.current) return;
         setPackageInputs(inputs.filter((input) => !!input.parameter));
         setInputsState('loaded');
       })
       .catch((err: unknown) => {
+        if (token !== inputsRequestRef.current) return;
         setPackageInputs([]);
         // A package that declares no input answers 404: that is an empty list,
         // not an unreadable one, and it must not hold the wizard back.
