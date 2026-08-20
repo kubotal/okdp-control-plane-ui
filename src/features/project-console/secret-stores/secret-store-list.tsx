@@ -283,7 +283,7 @@ export function SecretStoreList() {
 
       {/* Data Table */}
       <div className="table-wrapper">
-        <DataTable
+        <DataTable paginator rows={25} paginatorTemplate="PrevPageLink PageLinks NextPageLink" alwaysShowPaginator={false}
           value={stores}
           loading={loading}
           globalFilter={globalFilter}

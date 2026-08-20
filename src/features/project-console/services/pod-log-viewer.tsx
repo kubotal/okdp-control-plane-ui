@@ -20,6 +20,8 @@ export function PodLogViewer({ projectId, serviceName, pods, initialPodName }: P
   const stickToBottomRef = useRef(true);
 
   const [lines, setLines] = useState<string[]>([]);
+  const pendingRef = useRef<string[]>([]);
+  const flushRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [loading, setLoading] = useState(true);
   const [streamError, setStreamError] = useState('');
   const [selectedPodName, setSelectedPodName] = useState('');
@@ -67,6 +69,9 @@ export function PodLogViewer({ projectId, serviceName, pods, initialPodName }: P
     setLoading(true);
     setLines([]);
     setStreamError('');
+    pendingRef.current = [];
+    clearTimeout(flushRef.current);
+    flushRef.current = undefined;
 
     if (followMode) {
       return serviceApi.streamPodLogs(
@@ -75,14 +80,22 @@ export function PodLogViewer({ projectId, serviceName, pods, initialPodName }: P
         selectedPodName,
         {
           next: (line) => {
-            setLines((prev) => {
-              const next = [...prev, line];
-              if (next.length > MAX_LOG_LINES) {
-                next.splice(0, next.length - MAX_LOG_LINES);
-              }
-              return next;
-            });
-            setLoading(false);
+            pendingRef.current.push(line);
+            if (flushRef.current === undefined) {
+              flushRef.current = setTimeout(() => {
+                flushRef.current = undefined;
+                const batch = pendingRef.current;
+                pendingRef.current = [];
+                setLines((prev) => {
+                  const next = [...prev, ...batch];
+                  if (next.length > MAX_LOG_LINES) {
+                    next.splice(0, next.length - MAX_LOG_LINES);
+                  }
+                  return next;
+                });
+                setLoading(false);
+              }, 100);
+            }
           },
           complete: () => setLoading(false),
           error: (err) => {

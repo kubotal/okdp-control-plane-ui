@@ -232,7 +232,7 @@ export default function ProjectList() {
 
           {/* Data Table */}
           <div className="table-wrapper">
-            <DataTable
+            <DataTable paginator rows={25} paginatorTemplate="PrevPageLink PageLinks NextPageLink" alwaysShowPaginator={false}
               value={rows}
               dataKey="name"
               globalFilter={globalFilter}

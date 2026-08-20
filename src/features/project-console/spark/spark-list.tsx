@@ -112,7 +112,7 @@ export function SparkList() {
       <SearchFilter value={globalFilter} onChange={setGlobalFilter} placeholder="Filter jobs..." />
 
       <div className="table-wrapper">
-        <DataTable
+        <DataTable paginator rows={25} paginatorTemplate="PrevPageLink PageLinks NextPageLink" alwaysShowPaginator={false}
           value={apps}
           loading={loading}
           rowHover

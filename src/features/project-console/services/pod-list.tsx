@@ -26,7 +26,7 @@ export interface PodListProps {
 
 export function PodList({ pods, onViewLogs }: PodListProps) {
   return (
-    <DataTable
+    <DataTable paginator rows={25} paginatorTemplate="PrevPageLink PageLinks NextPageLink" alwaysShowPaginator={false}
       value={pods}
       rowHover
       className="minimal-table"

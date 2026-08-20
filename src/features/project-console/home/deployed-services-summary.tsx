@@ -46,7 +46,7 @@ export default function DeployedServicesSummary({
 
   return (
     <div className="table-wrapper">
-      <DataTable value={rows} dataKey="name" className="minimal-table">
+      <DataTable paginator rows={25} paginatorTemplate="PrevPageLink PageLinks NextPageLink" alwaysShowPaginator={false} value={rows} dataKey="name" className="minimal-table">
         <Column
           header="Instance"
           field="name"
