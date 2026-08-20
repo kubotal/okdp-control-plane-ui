@@ -165,7 +165,7 @@ export function UserList() {
 
           {/* Data Table */}
           <div className="table-wrapper">
-            <DataTable
+            <DataTable paginator rows={25} paginatorTemplate="PrevPageLink PageLinks NextPageLink" alwaysShowPaginator={false}
               value={users}
               loading={loading}
               globalFilter={globalFilter}

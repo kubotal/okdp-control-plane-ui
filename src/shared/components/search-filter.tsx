@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+const DEBOUNCE_MS = 250;
 
 interface SearchFilterProps {
   value: string;
@@ -16,6 +18,21 @@ export default function SearchFilter({
   placeholder = 'Filter…',
   hint,
 }: SearchFilterProps) {
+  const [text, setText] = useState(value);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    setText(value);
+  }, [value]);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const commit = (next: string) => {
+    setText(next);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => onChange(next), DEBOUNCE_MS);
+  };
+
   return (
     <div className="okdp-filter-bar">
       <div className="okdp-search-wrapper">
@@ -23,8 +40,8 @@ export default function SearchFilter({
         <input
           className="okdp-search-input"
           placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={text}
+          onChange={(e) => commit(e.target.value)}
         />
       </div>
       {hint != null && <div className="filter-hint">{hint}</div>}
