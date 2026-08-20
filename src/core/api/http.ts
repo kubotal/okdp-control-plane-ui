@@ -119,13 +119,40 @@ export function unavailableFeature(err: unknown): string | null {
   return null;
 }
 
+const CACHE_TTL_MS = 5_000;
+
+interface CacheEntry {
+  at: number;
+  value: Promise<unknown>;
+}
+
+const getCache = new Map<string, CacheEntry>();
+
+export function clearApiCache(): void {
+  getCache.clear();
+}
+
+function cachedGet<T>(url: string, init: RequestInit | undefined, fetcher: () => Promise<T>): Promise<T> {
+  if (init) {
+    return fetcher();
+  }
+  const hit = getCache.get(url);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    return hit.value as Promise<T>;
+  }
+  const value = fetcher();
+  getCache.set(url, { at: Date.now(), value });
+  value.catch(() => getCache.delete(url));
+  return value;
+}
+
 export const http = {
   async get<T>(url: string, init?: RequestInit): Promise<T> {
-    return parseJson<T>(await request(url, init));
+    return cachedGet(url, init, async () => parseJson<T>(await request(url, init)));
   },
 
   async getList<T>(url: string, init?: RequestInit): Promise<T[]> {
-    return (await parseJson<T[] | undefined>(await request(url, init))) ?? [];
+    return cachedGet(url, init, async () => (await parseJson<T[] | undefined>(await request(url, init))) ?? []);
   },
 
   async getText(url: string, init?: RequestInit): Promise<string> {
@@ -133,18 +160,22 @@ export const http = {
   },
 
   async post<T>(url: string, body: unknown, init?: RequestInit): Promise<T> {
+    clearApiCache();
     return parseJson<T>(await request(url, { ...jsonInit('POST', body), ...init }));
   },
 
   async put<T>(url: string, body: unknown, init?: RequestInit): Promise<T> {
+    clearApiCache();
     return parseJson<T>(await request(url, { ...jsonInit('PUT', body), ...init }));
   },
 
   async patch<T>(url: string, body: unknown, init?: RequestInit): Promise<T> {
+    clearApiCache();
     return parseJson<T>(await request(url, { ...jsonInit('PATCH', body), ...init }));
   },
 
   async delete(url: string, init?: RequestInit): Promise<void> {
+    clearApiCache();
     await request(url, { ...init, method: 'DELETE' });
   },
 };
