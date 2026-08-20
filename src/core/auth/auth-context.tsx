@@ -59,7 +59,7 @@ function createUserManager(): UserManager {
     scope: environment.oidc.scope,
     response_type: environment.oidc.responseType,
     automaticSilentRenew: environment.oidc.silentRenew,
-    userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+    userStore: new WebStorageStateStore({ store: window.localStorage }),
   });
 }
 
