@@ -32,7 +32,9 @@ export function useProjectStats(projectNames: string[]): Record<string, ProjectS
   const fetchedRef = useRef<Set<string>>(new Set());
   const [refreshNonce, setRefreshNonce] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setRefreshNonce((n) => n + 1), 10_000);
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') setRefreshNonce((n) => n + 1);
+    }, 10_000);
     return () => clearInterval(id);
   }, []);
 
