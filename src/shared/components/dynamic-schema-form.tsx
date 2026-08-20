@@ -168,8 +168,7 @@ function KeyValueField({
 
   // The rows are held here rather than derived from the object, because a row
   // being typed is not yet a valid entry: a blank key, or a key that duplicates
-  // another for as long as it takes to finish typing, has nowhere to live in an
-  // object and used to make two rows collapse into one.
+  // another until the typing is finished, has nowhere to live in an object.
   const [rows, setRows] = useState<[string, unknown][]>(() => Object.entries(value));
   const emittedRef = useRef(value);
 

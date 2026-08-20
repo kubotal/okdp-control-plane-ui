@@ -80,7 +80,7 @@ export function ConnectionDetailDialog({
   }
 
   // Never render a field the type marks as a credential. The server already
-  // keeps them out of `values`, but this panel exists to be looked at — it
+  // keeps them out of `values`, but this panel exists to be looked at, so it
   // must not become the one place a password shows up if that ever regresses.
   //
   // The field naming the Secret is dropped too: it is plumbing for a package

@@ -113,8 +113,10 @@ Everything lives in `src/core/auth/`; configuration in
    to `/home`, so the two redirects cannot race. `RequireAuth` re-saves the
    location whenever it bounces an unauthenticated user, which covers the
    silent-renew-expiry path.
-4. **Roles.** Derived from the OIDC `groups` claim. `hasRole('admins')` gates
-   `RequireAdmin`; non-admins are sent to `/home`.
+4. **Roles.** Read from the claim named by `identity.rolesClaim` (default
+   `groups`). `isAdmin`, true when the roles carry `identity.adminRole`
+   (default `platform_admin`), gates `RequireAdmin`, and non-admins are sent to
+   `/home`.
 5. **Token renewal.** Silent renew runs automatically. `silentRenewError` is
    logged (the current token is usually still valid at that point);
    `accessTokenExpired` drops the local session, which routes the user back to

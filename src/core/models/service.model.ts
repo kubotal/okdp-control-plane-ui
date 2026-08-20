@@ -54,8 +54,8 @@ export interface ServiceInstance {
   targetNamespace: string;
   url?: string;
   parameters: Record<string, unknown>;
-  /** What the release is actually wired to, published by the controller. The
-   *  console used to show only what a service asked for, never what it got. */
+  /** What the release is actually wired to, published by the controller,
+   *  as opposed to what the service asked for. */
   connections?: ServiceConnection[];
   createdAt?: string;
 }

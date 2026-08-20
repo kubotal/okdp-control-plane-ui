@@ -77,7 +77,7 @@ function renderList() {
 }
 
 /** Opens the creation dialog and fills the PostgreSQL fields, which the Test
- *  button requires — including the credential, since the test endpoint only
+ *  button requires, including the credential, since the test endpoint only
  *  ever sees what the form holds. */
 async function openFilledDialog(name = 'warehouse-2') {
   fireEvent.click(screen.getByRole('button', { name: /Add connection/ }));
@@ -253,7 +253,8 @@ describe('credentials survive editing another field', () => {
     fireEvent.click(screen.getByRole('button', { name: /Add connection/ }));
     await waitFor(() => expect(screen.getByLabelText('Connection name')).toBeInTheDocument());
 
-    // The credential first, then the schema field: the order that used to lose it.
+    // The credential first, then the schema field: the order that loses it when
+    // the two share one state.
     fireEvent.change(screen.getByLabelText(/^Password\b/), { target: { value: 's3cret' } });
     fireEvent.change(screen.getByLabelText('Connection name'), { target: { value: 'warehouse-2' } });
     fireEvent.change(screen.getByLabelText(/^Host\b/), { target: { value: 'db.example.com' } });

@@ -52,3 +52,4 @@ CLAUDE.md
 # TypeScript incremental build
 tsconfig.tsbuildinfo
 .env*.local
+.angular/

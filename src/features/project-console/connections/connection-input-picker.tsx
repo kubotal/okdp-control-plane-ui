@@ -19,7 +19,7 @@ import { missingRequiredFields, omitBlankSecrets, toDynamicSchema } from './conn
 import { CredentialsBlock, type CredentialsMode } from './credentials-block';
 import { ConnectionTestReport } from './connection-test-result';
 
-/** Internal sentinel for "no connection" — PrimeReact's Dropdown mishandles an
+/** Internal sentinel for "no connection": PrimeReact's Dropdown mishandles an
  *  option whose value is the empty string, so the option carries this value and
  *  the picker reports '' to its parent: the package resolves an empty parameter
  *  to a name nothing can be called, and skips the binding. */
@@ -124,7 +124,7 @@ export function ConnectionInputPicker({
     <div className="form-field" data-testid={`connection-input-${input.alias}`}>
       <div className="field-head">
         <label style={{ margin: 0 }}>
-          Connection — {input.alias}
+          Connection: {input.alias}
           <span className="muted-text small"> ({input.contract})</span>
         </label>
         {/* Creating is only offered for contracts a user may declare by hand:
@@ -199,7 +199,8 @@ export function ConnectionInputPicker({
 
 /** The connection-creation dialog, reduced to what the deploy flow needs: the
  *  type is fixed by the input's contract, and the Test button probes the live
- *  endpoint before anything is saved — same server call as the Connections
+ *  endpoint before anything is saved, through the same server call as the
+ *  Connections
  *  page, so the behaviour cannot drift. */
 function InlineConnectionCreate({
   projectId,

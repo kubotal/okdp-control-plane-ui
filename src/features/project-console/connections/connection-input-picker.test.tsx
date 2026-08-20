@@ -99,7 +99,7 @@ describe('ConnectionInputPicker', () => {
     renderPicker();
     await waitFor(() => expect(selectable).toHaveBeenCalled());
 
-    // Selected label and panel entry both say None — an optional input
+    // Selected label and panel entry both say None, since an optional input
     // defaults to it before any pick.
     expect((await screen.findAllByText('None')).length).toBeGreaterThan(0);
   });
@@ -130,7 +130,7 @@ describe('ConnectionInputPicker', () => {
     expect(await screen.findByRole('button', { name: /New connection/ })).toBeInTheDocument();
   });
 
-  // A trino connection exists because a Trino is deployed — there is nothing
+  // A trino connection exists because a Trino is deployed, so there is nothing
   // a user could type into a creation form.
   it('should not offer creating for an internal-only contract', async () => {
     renderPicker({ alias: 'engine', contract: 'trino', parameter: 'trinoConnection', optional: true });

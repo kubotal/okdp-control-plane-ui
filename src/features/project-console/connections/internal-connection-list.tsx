@@ -18,7 +18,7 @@ const isConnectionChanged = (incoming: InternalConnection, current: InternalConn
   incoming.status !== current.status ||
   incoming.managed !== current.managed;
 
-/** Connections provided by the services already deployed in the project — a
+/** Connections provided by the services already deployed in the project: a
  *  Trino a project's Airflow can query, for instance. They are not editable
  *  here: they exist because the service exists, and disappear with it. */
 export function InternalConnectionList() {
@@ -70,8 +70,8 @@ export function InternalConnectionList() {
             <div className="flex items-center justify-center gap-2 p-8 text-[14px] text-fg-secondary">
               <i className="pi pi-sitemap text-[1.2rem] opacity-50"></i>
               <span>
-                No service in this project exposes a connection yet. Deploy one — a Trino, for
-                instance — and it will appear here.
+                No service in this project exposes a connection yet. Deploy one, a Trino for
+                instance, and it will appear here.
               </span>
             </div>
           }

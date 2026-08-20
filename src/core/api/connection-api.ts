@@ -84,7 +84,7 @@ export interface Connection {
   status: string;
   message?: string;
   values: ConnectionValues;
-  /** Names of the fields holding credentials — their values are never sent. */
+  /** Names of the fields holding credentials. Their values are never sent. */
   secretFields?: string[];
   /** The Secret holding those credentials, for consumers to reference. */
   credentialsSecret?: CredentialsSecretRef;
@@ -163,8 +163,8 @@ export interface ConnectionTestResult {
   reason?: ConnectionTestReason;
   durationMs: number;
   /** One entry per address probed. A contract may publish several, and a store
-   *  reachable from outside the cluster but not from inside it is a real case
-   *  that a single verdict used to hide. */
+   *  reachable from outside the cluster but not from inside it needs both
+   *  answers to be readable. */
   checks?: ConnectionTestCheck[];
 }
 

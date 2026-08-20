@@ -119,7 +119,7 @@ describe('missingRequiredFields', () => {
   });
 
   it('does not demand a field the chosen engine rules out', () => {
-    // tls only applies to MySQL, so on a PostgreSQL form it is not on screen —
+    // tls only applies to MySQL, so on a PostgreSQL form it is not on screen,
     // demanding it would grey out Save with nothing to click on.
     const missing = missingRequiredFields(POSTGRES, {
       engine: 'postgresql',

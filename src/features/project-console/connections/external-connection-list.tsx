@@ -66,9 +66,9 @@ export function ExternalConnectionList() {
   const [deleteTarget, setDeleteTarget] = useState<Connection | null>(null);
   // Who consumes the connection about to be deleted. Loaded when the dialog
   // opens: the answer only exists on the cluster, and it changes.
-  // Three states, not two: still asking, could not ask, and the answer. The
-  // first two used to share `null`, so a dialog opened during the lookup
-  // announced a failed check that had not failed yet.
+  // Three states, not two: still asking, could not ask, and the answer. A
+  // dialog opened during the lookup must not announce a check as failed while
+  // it is still running.
   const [consumers, setConsumers] = useState<ConnectionConsumer[] | 'loading' | null>(null);
 
   // Dialog state

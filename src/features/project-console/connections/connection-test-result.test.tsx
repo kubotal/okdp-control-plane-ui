@@ -4,8 +4,8 @@ import type { ConnectionTestResult } from '../../../core/api/connection-api';
 import { ConnectionTestReport } from './connection-test-result';
 
 // An object store answering through its ingress while its in-cluster address
-// does not resolve is the case a single green verdict used to hide: the test
-// passed, and the deployed workload could not reach the store.
+// does not resolve must not read as a success: the deployed workload takes the
+// in-cluster path.
 const REACHABLE_OUTSIDE_ONLY: ConnectionTestResult = {
   success: false,
   message: 'Host not found.',

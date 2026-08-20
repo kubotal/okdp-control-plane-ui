@@ -127,18 +127,23 @@ VITE v7  ready in NNN ms
 | | Development | Production |
 |---|---|---|
 | API base URL | `http://localhost:8093` | `/api` (same-origin, behind an ingress) |
-| OIDC authority | okdp-sandbox (`https://keycloak.okdp.sandbox/realms/master`) | inherited from dev (see below) |
-| OIDC client | `okdp-ui` | `okdp-ui` |
+| OIDC authority | `VITE_OIDC_AUTHORITY` from `.env.local` | `oidc.authority` from the chart, through `/config.js` |
+| OIDC client | `VITE_OIDC_CLIENT_ID`, default `okdp-ui` | `oidc.clientId` from the chart, default `okdp-ui` |
+
+The OIDC settings are read at startup rather than baked into the bundle, so one
+image runs against any cluster: the container entrypoint writes `/config.js`
+from the chart values, and `index.html` loads it before the bundle. Without an
+authority the console shows a configuration screen instead of signing users in
+somewhere else.
 
 Authentication uses the OIDC authorization-code flow (`oidc-client-ts`) with
-silent renew; tokens live in `sessionStorage`. Roles come from the OIDC `groups`
-claim — members of `admins` get the admin pages.
+silent renew, and tokens live in `sessionStorage`. Roles are read from the claim
+named by `identity.rolesClaim` (default `groups`, dotted paths supported), and
+the administration pages are granted by `identity.adminRole` (default
+`platform_admin`).
 
-> **Production note:** the OIDC authority is currently baked into the bundle at
-> build time and inherits the sandbox value; deployments targeting another IdP
-> need a build-time override or runtime config injection. The production image
-> also expects a fronting ingress to route `/api` to the control plane — the
-> nginx in the image serves only the static bundle. See
+> **Production note:** the image expects a fronting ingress to route `/api` to
+> the control plane, since its nginx serves only the static bundle. See
 > [Known limitations](ARCHITECTURE.md#known-limitations--open-decisions).
 
 ## Docker

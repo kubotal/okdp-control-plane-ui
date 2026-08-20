@@ -30,7 +30,7 @@ const REASON_ICON: Record<ConnectionTestReason, string> = {
   unknown: 'pi pi-times-circle',
 };
 
-/** Icon summarising why a connectivity test failed — a wrong password and an
+/** Icon summarising why a connectivity test failed: a wrong password and an
  *  unreachable host are different problems and should not look alike. */
 export function testResultIcon(result: ConnectionTestResult): string {
   if (result.success) return 'pi pi-check-circle';
