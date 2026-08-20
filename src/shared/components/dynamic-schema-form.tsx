@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputTextarea } from 'primereact/inputtextarea';
@@ -504,6 +504,141 @@ function isVisible(field: SchemaField, values: Record<string, any>): boolean {
 // parent render and re-trigger the values-rebuild effect in a loop.
 const EMPTY_VALUES: Record<string, any> = {};
 
+const FieldWidget = memo(function FieldWidget({
+  field,
+  value,
+  invalid,
+  hasError,
+  projectId,
+  setValue,
+}: {
+  field: SchemaField;
+  value: any;
+  invalid: string;
+  hasError: boolean;
+  projectId?: string;
+  setValue: (name: string, value: any) => void;
+}) {
+      switch (resolveWidget(field)) {
+        case 'password':
+          return (
+            <Password
+              inputId={field.name}
+              value={value ?? ''}
+              placeholder={field['x-ui-placeholder'] || ''}
+              feedback={false}
+              toggleMask
+              className="w-full"
+              inputClassName={invalid ? 'field-invalid' : undefined}
+              onChange={(e) => setValue(field.name, e.target.value)}
+            />
+          );
+        case 'object-list':
+          return (
+            <ObjectListField
+              field={field}
+              value={Array.isArray(value) ? value : []}
+              projectId={projectId}
+              onChange={(next) => setValue(field.name, next)}
+            />
+          );
+        case 'key-value':
+          return (
+            <KeyValueField
+              value={value && typeof value === 'object' ? (value as Record<string, unknown>) : {}}
+              onChange={(next) => setValue(field.name, next)}
+            />
+          );
+        case 'yaml':
+          return (
+            <JsonField
+              field={field}
+              value={value}
+              invalid={hasError}
+              onChange={(parsed) => setValue(field.name, parsed)}
+            />
+          );
+        case 'textarea':
+          return (
+            <InputTextarea
+              id={field.name}
+              value={value ?? ''}
+              placeholder={field['x-ui-placeholder'] || ''}
+              rows={3}
+              className={`w-full${invalid}`}
+              onChange={(e) => setValue(field.name, e.target.value)}
+            />
+          );
+        case 'select':
+          return (
+            <Dropdown
+              inputId={field.name}
+              value={value}
+              options={toOptions(field.enum!)}
+              optionLabel="label"
+              optionValue="value"
+              placeholder={field['x-ui-placeholder'] || 'Select...'}
+              className={`w-full${invalid}`}
+              onChange={(e) => setValue(field.name, e.value)}
+            />
+          );
+        case 'stepper':
+          return (
+            <InputNumber
+              inputId={field.name}
+              value={value ?? null}
+              showButtons
+              buttonLayout="horizontal"
+              step={field.multipleOf || 1}
+              min={field.minimum}
+              max={field.maximum}
+              {...fractionProps(field)}
+              incrementButtonIcon="pi pi-plus"
+              decrementButtonIcon="pi pi-minus"
+              className="w-full"
+              onValueChange={(e) => setValue(field.name, e.value)}
+            />
+          );
+        case 'number':
+          return (
+            <InputNumber
+              inputId={field.name}
+              value={value ?? null}
+              min={field.minimum}
+              max={field.maximum}
+              step={field.multipleOf || 1}
+              {...fractionProps(field)}
+              className="w-full"
+              onValueChange={(e) => setValue(field.name, e.value)}
+            />
+          );
+        case 'toggle':
+          return <InputSwitch checked={!!value} onChange={(e) => setValue(field.name, e.value)} />;
+        case 'url':
+          return (
+            <InputText
+              id={field.name}
+              type="url"
+              value={value ?? ''}
+              placeholder={field['x-ui-placeholder'] || ''}
+              className={`w-full${invalid}`}
+              onChange={(e) => setValue(field.name, e.target.value)}
+            />
+          );
+        default:
+          return (
+            <InputText
+              id={field.name}
+              type="text"
+              value={value ?? ''}
+              placeholder={field['x-ui-placeholder'] || ''}
+              className={`w-full${invalid}`}
+              onChange={(e) => setValue(field.name, e.target.value)}
+            />
+          );
+      }
+});
+
 export function DynamicSchemaForm({
   schema,
   projectId,
@@ -568,9 +703,9 @@ export function DynamicSchemaForm({
     onParametersChangeRef.current(filtered);
   }, [values, fieldErrors, fieldsByName]);
 
-  const setValue = (name: string, value: any) => {
+  const setValue = useCallback((name: string, value: any) => {
     setValues((v) => ({ ...v, [name]: value }));
-  };
+  }, []);
 
   const isFieldVisible = (field: SchemaField): boolean => isVisible(field, values);
 
@@ -578,130 +713,16 @@ export function DynamicSchemaForm({
     setAdvancedOpen((open) => ({ ...open, [groupName]: !open[groupName] }));
   };
 
-  const renderWidget = (field: SchemaField) => {
-    const value = values[field.name];
-    // The field-invalid CSS targets the element carrying the class, so it is
-    // passed into each widget rather than set on a wrapper.
-    const invalid = fieldErrors[field.name] ? ' field-invalid' : '';
-    switch (resolveWidget(field)) {
-      case 'password':
-        return (
-          <Password
-            inputId={field.name}
-            value={value ?? ''}
-            placeholder={field['x-ui-placeholder'] || ''}
-            feedback={false}
-            toggleMask
-            className="w-full"
-            inputClassName={invalid ? 'field-invalid' : undefined}
-            onChange={(e) => setValue(field.name, e.target.value)}
-          />
-        );
-      case 'object-list':
-        return (
-          <ObjectListField
-            field={field}
-            value={Array.isArray(value) ? value : []}
-            projectId={projectId}
-            onChange={(next) => setValue(field.name, next)}
-          />
-        );
-      case 'key-value':
-        return (
-          <KeyValueField
-            value={value && typeof value === 'object' ? (value as Record<string, unknown>) : {}}
-            onChange={(next) => setValue(field.name, next)}
-          />
-        );
-      case 'yaml':
-        return (
-          <JsonField
-            field={field}
-            value={value}
-            invalid={!!fieldErrors[field.name]}
-            onChange={(parsed) => setValue(field.name, parsed)}
-          />
-        );
-      case 'textarea':
-        return (
-          <InputTextarea
-            id={field.name}
-            value={value ?? ''}
-            placeholder={field['x-ui-placeholder'] || ''}
-            rows={3}
-            className={`w-full${invalid}`}
-            onChange={(e) => setValue(field.name, e.target.value)}
-          />
-        );
-      case 'select':
-        return (
-          <Dropdown
-            inputId={field.name}
-            value={value}
-            options={toOptions(field.enum!)}
-            optionLabel="label"
-            optionValue="value"
-            placeholder={field['x-ui-placeholder'] || 'Select...'}
-            className={`w-full${invalid}`}
-            onChange={(e) => setValue(field.name, e.value)}
-          />
-        );
-      case 'stepper':
-        return (
-          <InputNumber
-            inputId={field.name}
-            value={value ?? null}
-            showButtons
-            buttonLayout="horizontal"
-            step={field.multipleOf || 1}
-            min={field.minimum}
-            max={field.maximum}
-            {...fractionProps(field)}
-            incrementButtonIcon="pi pi-plus"
-            decrementButtonIcon="pi pi-minus"
-            className="w-full"
-            onValueChange={(e) => setValue(field.name, e.value)}
-          />
-        );
-      case 'number':
-        return (
-          <InputNumber
-            inputId={field.name}
-            value={value ?? null}
-            min={field.minimum}
-            max={field.maximum}
-            step={field.multipleOf || 1}
-            {...fractionProps(field)}
-            className="w-full"
-            onValueChange={(e) => setValue(field.name, e.value)}
-          />
-        );
-      case 'toggle':
-        return <InputSwitch checked={!!value} onChange={(e) => setValue(field.name, e.value)} />;
-      case 'url':
-        return (
-          <InputText
-            id={field.name}
-            type="url"
-            value={value ?? ''}
-            placeholder={field['x-ui-placeholder'] || ''}
-            className={`w-full${invalid}`}
-            onChange={(e) => setValue(field.name, e.target.value)}
-          />
-        );
-      default:
-        return (
-          <InputText
-            id={field.name}
-            type="text"
-            value={value ?? ''}
-            placeholder={field['x-ui-placeholder'] || ''}
-            className={`w-full${invalid}`}
-            onChange={(e) => setValue(field.name, e.target.value)}
-          />
-        );
-    }
-  };
+  const renderWidget = (field: SchemaField) => (
+    <FieldWidget
+      field={field}
+      value={values[field.name]}
+      invalid={fieldErrors[field.name] ? ' field-invalid' : ''}
+      hasError={!!fieldErrors[field.name]}
+      projectId={projectId}
+      setValue={setValue}
+    />
+  );
 
   const renderFieldGrid = (group: FieldGroup, groupFields: SchemaField[]) => (
     <div
