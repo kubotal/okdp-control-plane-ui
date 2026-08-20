@@ -105,6 +105,12 @@ export const serviceApi = {
     );
   },
 
+  getProjectMetrics(projectId: string): Promise<Record<string, ServiceMetrics>> {
+    return http.get<Record<string, ServiceMetrics>>(
+      `${baseUrl}/api/projects/${seg(projectId)}/metrics`,
+    );
+  },
+
   getPodLogs(
     projectId: string,
     serviceName: string,

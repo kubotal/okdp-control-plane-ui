@@ -36,24 +36,27 @@ export function useProjectServicesSummary(projectId: string | undefined): Projec
     // in flight; staleness is therefore keyed on the per-project fetch set
     // (replaced when projectId changes), not on a per-run cancelled flag.
     const fetched = fetchedMetricsRef.current;
-    for (const svc of instances) {
-      if (fetched.has(svc.name)) continue;
+    const missing = instances.filter((svc) => !fetched.has(svc.name));
+    if (missing.length === 0) return;
+    for (const svc of missing) {
       fetched.add(svc.name);
       // Recent snapshot fills the cell while the fresh request runs.
       const cached = readUiCache<ServiceMetrics>(`metrics:${projectId}/${svc.name}`);
       if (cached) {
         setMetrics((prev) => (prev[svc.name] ? prev : { ...prev, [svc.name]: cached }));
       }
-      serviceApi
-        .getServiceMetrics(projectId, svc.name)
-        .then((m) => {
-          writeUiCache(`metrics:${projectId}/${svc.name}`, m);
-          if (fetchedMetricsRef.current === fetched) {
-            setMetrics((prev) => ({ ...prev, [svc.name]: m }));
-          }
-        })
-        .catch(() => undefined);
     }
+    serviceApi
+      .getProjectMetrics(projectId)
+      .then((all) => {
+        for (const [name, m] of Object.entries(all)) {
+          writeUiCache(`metrics:${projectId}/${name}`, m);
+        }
+        if (fetchedMetricsRef.current === fetched) {
+          setMetrics((prev) => ({ ...prev, ...all }));
+        }
+      })
+      .catch(() => undefined);
   }, [instances, projectId]);
 
   return { instances, metrics, loaded };
