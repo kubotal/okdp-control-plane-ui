@@ -85,9 +85,8 @@ export function useProjectStats(projectNames: string[]): Record<string, ProjectS
           }
           mergeIfAbsent(name, base);
 
-          const metrics = await Promise.all(
-            instances.map((i) => serviceApi.getServiceMetrics(name, i.name).catch(() => null)),
-          );
+          const byService = await serviceApi.getProjectMetrics(name).catch(() => ({}) as Record<string, import('../../../core/models/service.model').ServiceMetrics>);
+          const metrics = instances.map((i) => byService[i.name] ?? null);
           let cpu = 0;
           let mem = 0;
           let cpuLimit = 0;
